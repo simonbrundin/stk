@@ -30,4 +30,17 @@ export default defineNuxtConfig({
       apiBase: process.env.NUXT_PUBLIC_API_BASE || 'http://localhost:8080',
     },
   },
+
+  // Dev-server: /api/ proxas till Go API:t, samma sökväg som nginx i produktion.
+  vite: {
+    server: {
+      proxy: {
+        '/api': {
+          target: process.env.API_PROXY_TARGET || 'http://localhost:8080',
+          changeOrigin: true,
+          rewrite: (path: string) => path.replace(/^\/api/, ''),
+        },
+      },
+    },
+  },
 })
