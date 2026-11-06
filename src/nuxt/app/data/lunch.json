@@ -1,0 +1,167 @@
+{
+  "restaurant": {
+    "id": 729,
+    "name": "Hovet Restaurang & Café",
+    "url": "https://www.matochmat.se/restauranger/sundsvall/lunch/hovet-restaurang-och-cafe/"
+  },
+  "timeZone": "Europe/Stockholm",
+  "generatedAt": "2026-11-06T12:47:13.105Z",
+  "days": [
+    {
+      "date": "2026-11-06",
+      "weekday": "fredag",
+      "isToday": true,
+      "isPublished": true,
+      "dishes": [
+        {
+          "name": "Lunchbuffé",
+          "description": "inkl. sallad, måltidsdryck, bröd, smör, kaffe och småkakor",
+          "price": "135",
+          "tags": []
+        },
+        {
+          "name": "Hovets Lasagne",
+          "description": "med köttfärs, tomat, lök, grädde och vitlök",
+          "price": "",
+          "tags": []
+        },
+        {
+          "name": "Hovets grillbuffé",
+          "description": "Karré, kotlettrad, pluma rödvinssås chicken drumsticks, chorizo, friterad klyftpotatis Hovets Bearnaisesås chipotle mayo tryffelmayo majskolvar vitlökssmör",
+          "price": "",
+          "tags": []
+        },
+        {
+          "name": "Dagens vegetariska",
+          "description": "Falafel serveras med pommes frites samt bearnaisesås",
+          "price": "",
+          "tags": [
+            "Vegetarisk"
+          ]
+        },
+        {
+          "name": "Veckans soppa",
+          "description": "Rostad morotssoppa med kokosgrädde vitlök ingefära chili limeblad",
+          "price": "",
+          "tags": []
+        },
+        {
+          "name": "Fredagens Höjdare",
+          "description": "Knäckig äppelpaj med kanel och kardemumma krämig vaniljsås",
+          "price": "",
+          "tags": []
+        }
+      ]
+    },
+    {
+      "date": "2026-11-07",
+      "weekday": "lördag",
+      "isToday": false,
+      "isPublished": true,
+      "dishes": [
+        {
+          "name": "Lunchbuffé",
+          "description": "inkl. sallad, måltidsdryck, bröd, smör, kaffe och småkakor",
+          "price": "135",
+          "tags": []
+        },
+        {
+          "name": "Spaghetti Bolognese",
+          "description": "köttfärssås med köttfärs, tomat, rött vin, lök och grädde, serveras med riven ost",
+          "price": "",
+          "tags": []
+        },
+        {
+          "name": "Hovets kebabtallrik",
+          "description": "Basmatiris rödlök fefferoni jalapenos samt vitlöksdressing",
+          "price": "",
+          "tags": []
+        },
+        {
+          "name": "Helgens vegetariska",
+          "description": "Falafel med vitlöksdressing",
+          "price": "",
+          "tags": []
+        }
+      ]
+    },
+    {
+      "date": "2026-11-08",
+      "weekday": "söndag",
+      "isToday": false,
+      "isPublished": true,
+      "dishes": [
+        {
+          "name": "Lunchbuffé",
+          "description": "inkl. sallad, måltidsdryck, bröd, smör, kaffe och småkakor",
+          "price": "135",
+          "tags": []
+        },
+        {
+          "name": "Hovets Korvstroganoff",
+          "description": "med falukorv, lök, tomat, chili och grädde serveras med basmatiris",
+          "price": "",
+          "tags": [
+            "Glutenfri"
+          ]
+        },
+        {
+          "name": "Kyckling köttbullar",
+          "description": "serveras med gräddsås kokt potatis samt lingonsylt",
+          "price": "",
+          "tags": []
+        },
+        {
+          "name": "Dagens vegetariska",
+          "description": "Falafel med vitlöksdressing",
+          "price": "",
+          "tags": []
+        }
+      ]
+    },
+    {
+      "date": "2026-11-09",
+      "weekday": "måndag",
+      "isToday": false,
+      "isPublished": true,
+      "dishes": [
+        {
+          "name": "Lunchbuffé",
+          "description": "inkl. sallad, måltidsdryck, bröd, smör, kaffe och småkakor",
+          "price": "135",
+          "tags": []
+        },
+        {
+          "name": "Hovets Lasagne",
+          "description": "med köttfärs, tomat, lök, grädde och vitlök",
+          "price": "",
+          "tags": []
+        },
+        {
+          "name": "Stekt falukorv",
+          "description": "toppad med karamelliserad lök samt stuvade makaroner",
+          "price": "",
+          "tags": []
+        },
+        {
+          "name": "Boeuf Bourguignon",
+          "description": "med högrev, sidfläsk, lök, champinjoner, rött vin pärllökar serveras med potatismos",
+          "price": "",
+          "tags": []
+        },
+        {
+          "name": "Veckans vegetariska",
+          "description": "Vårrullar med sweetchili basmatiris",
+          "price": "",
+          "tags": []
+        },
+        {
+          "name": "Veckans soppa",
+          "description": "Italiensk tomatsoppa",
+          "price": "",
+          "tags": []
+        }
+      ]
+    }
+  ]
+}

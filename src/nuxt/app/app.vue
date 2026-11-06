@@ -4,6 +4,7 @@
     <nav class="nav">
       <NuxtLink to="/">Start</NuxtLink>
       <NuxtLink to="/bookings">Bokningar</NuxtLink>
+      <NuxtLink to="/lunch">Lunch</NuxtLink>
     </nav>
     <NuxtPage />
   </div>
