@@ -1,0 +1,9 @@
+# Platshållare så att environments/pr alltid renderar minst en resurs.
+# Utan den skulle Flux-kustomizationen bli tom när inga PR-previews är aktiva.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pr-previews
+data:
+  managed-by: github-actions
+  note: "Varje PR lägger till sin overlay i environments/pr/<PR-nummer>/"

@@ -1,0 +1,8 @@
+# DO NOT EDIT MANUALLY
+# PR preview database configuration (includes seeds like dev)
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../../base/db

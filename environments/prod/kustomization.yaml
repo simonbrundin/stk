@@ -1,0 +1,38 @@
+# Production overlay
+#
+# DO NOT EDIT MANUALLY - `images` uppdateras av GitHub Actions (.github/workflows/ci.yaml)
+# Nya taggar sätts på varje merge till main och committas tillbaka, så att Flux
+# deployar exakt den image som byggdes.
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: repo-template
+
+resources:
+  - ../base
+  - ./db
+  - httproute.yaml
+
+images:
+  - name: nuxt-app
+    newName: ghcr.io/simonbrundin/repo-template-nuxt-app
+    newTag: main
+  - name: go-api
+    newName: ghcr.io/simonbrundin/repo-template-go-api
+    newTag: main
+  - name: rust-api
+    newName: ghcr.io/simonbrundin/repo-template-rust-api
+    newTag: main
+
+# Base-overlayns Namespace ("repo") döps om till "repo-template" av
+# namespace-transformern ovan; etiketterna sätts här.
+patches:
+  - target:
+      kind: Namespace
+    patch: |-
+      - op: add
+        path: /metadata/labels
+        value:
+          app.kubernetes.io/managed-by: flux
+          environment: prod

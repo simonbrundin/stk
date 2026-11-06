@@ -1,0 +1,20 @@
+# DO NOT EDIT MANUALLY
+# Production requires the externally managed repo-template-db-app/uri Secret.
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: prod
+
+resources:
+  - ../../base/db
+
+# Keep development seed data out of production.
+patches:
+  - target:
+      version: v1
+      kind: ConfigMap
+      name: repo-template-db-schema
+    patch: |-
+      - op: remove
+        path: /data/seeds.sql

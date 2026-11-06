@@ -1,0 +1,15 @@
+# DO NOT EDIT MANUALLY
+# Base environment
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - namespace.yaml
+  - nuxt-deployment.yaml
+  - nuxt-service.yaml
+  - go-api-deployment.yaml
+  - go-api-service.yaml
+  - rust-api-deployment.yaml
+  - rust-api-service.yaml
+  # Database resources are added by environment overlays.

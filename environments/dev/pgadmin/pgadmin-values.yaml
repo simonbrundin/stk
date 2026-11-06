@@ -1,0 +1,30 @@
+# pgAdmin values for dev environment
+# Connects to dev database automatically
+
+test:
+  enabled: false
+
+service:
+  type: ClusterIP
+  port: 80
+
+env:
+  email: admin@local.dev
+  password: admin
+
+persistentVolume:
+  enabled: false
+
+serverDefinitions:
+  enabled: true
+  resourceType: ConfigMap
+  servers:
+    "repo-template":
+      Name: "repo-template"
+      Group: "Development"
+      Host: "repo-template-db-rw.repo-template.svc.cluster.local"
+      Port: 5432
+      Username: "app"
+      MaintenanceDB: "app"
+      ConnectionParameters:
+        sslmode: "disable"

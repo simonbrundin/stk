@@ -1,0 +1,16 @@
+# DO NOT EDIT MANUALLY
+# Dev environment
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: repo-template
+
+resources:
+  - ../base
+  - db
+  - pgadmin
+
+# CNPG och Atlas operators hanteras av devenv
+
+# Images sätts av Tilt via docker_build + default_registry

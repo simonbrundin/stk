@@ -1,0 +1,12 @@
+# DO NOT EDIT MANUALLY
+# Denna fil uppdateras automatiskt av GitHub Actions (PR Preview).
+#
+# Varje PR får en egen overlay-mapp (./<PR-nummer>) som innehåller
+# base-overlayn + image-taggar + en egen HTTPRoute. Flux (Kustomization
+# "repo-template-previews") renderar hela environments/pr.
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - preview-info.yaml

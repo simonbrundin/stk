@@ -1,0 +1,27 @@
+# PostgreSQL Cluster for dev
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: repo-template-db
+  namespace: repo-template
+spec:
+  instances: 1
+
+  bootstrap:
+    initdb:
+      database: app
+      owner: app
+      secret:
+        name: repo-template-db-app-credentials
+
+  storage:
+    storageClass: cnpg
+    size: 1Gi
+
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
