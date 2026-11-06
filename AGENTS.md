@@ -857,7 +857,9 @@ Referensmått (mockupen):
 
 Strukturen i mockupen är: dagrubrik → tunn linje (2 px, grå `#767477`)
 under rubriken → rätter → 26 px till nästa dagrubrik. Textkolumnen är 740 px
-bred och börjar vid x=183. I sidfoten finns två tunna svarta linjer (180 px):
+bred och börjar vid x=183. Rätter som har ett pris får en prickledning från
+namnet till kolumnens högerkant (i mockupen visas bara prickarna - själva
+priset saknas i bilden). I sidfoten finns två tunna svarta linjer (180 px):
 en ovanför logotyptexten (högerjusterad) och en under undertxten (vänsterjusterad).
 
 Sidan använder två självhostade fonter från `src/nuxt/public/fonts/`:

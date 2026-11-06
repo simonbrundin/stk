@@ -15,7 +15,10 @@
 
         <ul v-else class="day__dishes">
           <li v-for="(dish, index) in day.dishes" :key="index" class="dish">
-            <p class="dish__name">{{ dish.name }}</p>
+            <p class="dish__name">
+              <span>{{ dish.name }}</span>
+              <span v-if="dish.price" class="dish__leader" aria-hidden="true" />
+            </p>
             <p v-if="dish.description" class="dish__description">{{ dish.description }}</p>
           </li>
         </ul>
@@ -167,11 +170,22 @@ const wordmark = computed(() => {
 }
 
 .dish__name {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4em;
   margin: 0;
   font-family: 'Archivo', 'Inter', sans-serif;
   font-size: clamp(0.9rem, 1.72vw, 1.2rem);
   font-variation-settings: 'wdth' 100, 'wght' 700;
   line-height: 1.2;
+}
+
+/* Prickledningen visar var rättens pris ska stå. I mockupen visas bara
+   prickarna - själva priset saknas i bilden. */
+.dish__leader {
+  flex: 1;
+  border-bottom: 2px dotted var(--lunch-muted);
+  transform: translateY(0.15em);
 }
 
 .dish__description {

@@ -31,9 +31,9 @@ func TestParseTimeParam(t *testing.T) {
 
 	for _, test := range exact {
 		t.Run(test.name, func(t *testing.T) {
-			parsed, err := parseTimeParam(test.value, loc, fallback)
+			parsed, err := ParseTimeParam(test.value, loc, fallback)
 			if err != nil {
-				t.Fatalf("parseTimeParam(%q): %v", test.value, err)
+				t.Fatalf("ParseTimeParam(%q): %v", test.value, err)
 			}
 			if !parsed.Equal(test.expected) {
 				t.Errorf("expected %s, got %s", test.expected, parsed)
@@ -58,9 +58,9 @@ func TestParseTimeParam(t *testing.T) {
 
 	for _, test := range relative {
 		t.Run(test.name, func(t *testing.T) {
-			parsed, err := parseTimeParam(test.value, loc, fallback)
+			parsed, err := ParseTimeParam(test.value, loc, fallback)
 			if err != nil {
-				t.Fatalf("parseTimeParam(%q): %v", test.value, err)
+				t.Fatalf("ParseTimeParam(%q): %v", test.value, err)
 			}
 			if diff := parsed.Sub(test.expected); diff > time.Minute || diff < -time.Minute {
 				t.Errorf("expected %s, got %s", test.expected, parsed)
@@ -76,7 +76,7 @@ func TestParseTimeParamInvalid(t *testing.T) {
 	}
 
 	for _, value := range []string{"hello", "2026-13-45", "now+7x"} {
-		if _, err := parseTimeParam(value, loc, time.Now()); err == nil {
+		if _, err := ParseTimeParam(value, loc, time.Now()); err == nil {
 			t.Errorf("expected error for invalid value %q", value)
 		}
 	}

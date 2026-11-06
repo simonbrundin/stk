@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"golang.org/x/net/html"
@@ -30,6 +31,54 @@ var (
 		"light-green": true, "light-blue": true, "light-yellow": true,
 	}
 )
+
+// maxConcurrentSchedules begränsar hur många schemasidor som hämtas samtidigt.
+//
+// Varje schema är en egen HTML-sida på flera hundra kilobyte, så parallell
+// hämtning gör att en hel period går igenom på ungefär en fjärdedel av tiden.
+const maxConcurrentSchedules = 4
+
+// DailySchedule är resultatet av att läsa ett dygns schema.
+type DailySchedule struct {
+	// Date är dagen som schemat gäller.
+	Date time.Time
+
+	// Schedule är schemat, eller nil om dagen inte kunde läsas.
+	Schedule *Schedule
+
+	// Err är felet som uppstod när dagen inte kunde läsas.
+	Err error
+}
+
+// ScheduleForDays läser schemat för flera dagar parallellt.
+//
+// Resultaten kommer i samma ordning som dagarna som skickades in. En dag
+// som inte gick att läsa får Err satt och Schedule nil, så att en enskild
+// trasig dag inte får resten av perioden att falla.
+func (c *Client) ScheduleForDays(ctx context.Context, days []time.Time) []DailySchedule {
+	results := make([]DailySchedule, len(days))
+
+	semaphore := make(chan struct{}, maxConcurrentSchedules)
+	var wg sync.WaitGroup
+
+	for i, day := range days {
+		wg.Add(1)
+
+		go func(index int, day time.Time) {
+			defer wg.Done()
+
+			semaphore <- struct{}{}
+			defer func() { <-semaphore }()
+
+			schedule, err := c.Schedule(ctx, day)
+			results[index] = DailySchedule{Date: day, Schedule: schedule, Err: err}
+		}(i, day)
+	}
+
+	wg.Wait()
+
+	return results
+}
 
 // Schedule returnerar dagens schema för en anläggning.
 //

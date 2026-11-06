@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/simon/repo-template/internal/actorsmartbook"
+	"github.com/simon/repo-template/internal/mapping"
 	"github.com/simon/repo-template/internal/matchi"
 	"github.com/simon/repo-template/internal/store"
 )
@@ -167,7 +168,7 @@ func (s *Syncer) Run(ctx context.Context) (*Report, error) {
 	seen := map[int64]bool{}
 
 	for _, appointment := range appointments {
-		courts := mappedCourts(appointment, mappings)
+		courts := mapping.Courts(appointment, mappings)
 		if len(courts) == 0 {
 			report.Skipped++
 			continue
@@ -345,41 +346,6 @@ func (s *Syncer) handleOrphans(ctx context.Context, seen map[int64]bool, from, t
 			report.Errors = append(report.Errors, fmt.Sprintf("kunde inte ta bort bokning %d: %v", booking.KommunAppointmentID, err))
 		}
 	}
-}
-
-// mappedCourts returnerar de MATCHi-banor som en bokning i det kommunala
-// systemet gäller.
-//
-// Det kommunala boknings-API:t levererar inte alltid resurs-id:t, utan bara
-// resursens namn i bokningens ämne ("11:00 - 13:00 Baldershallen 1"). Därför
-// matchas bokningen på namn när det finns, och på id som backup.
-func mappedCourts(appointment actorsmartbook.Appointment, mappings []store.CourtMapping) []store.CourtMapping {
-	var courts []store.CourtMapping
-
-	for _, mapping := range mappings {
-		if matchesResource(appointment, mapping) {
-			courts = append(courts, mapping)
-		}
-	}
-
-	return courts
-}
-
-// matchesResource avgör om en bokning gäller en given kommunresurs.
-func matchesResource(appointment actorsmartbook.Appointment, mapping store.CourtMapping) bool {
-	if name := strings.TrimSpace(appointment.Location); name != "" && mapping.KommunResourceName != "" {
-		if strings.EqualFold(name, mapping.KommunResourceName) {
-			return true
-		}
-	}
-
-	for _, resource := range appointment.Resources {
-		if resource.ID == mapping.KommunResourceID {
-			return true
-		}
-	}
-
-	return false
 }
 
 // commentFor bygger en kommentar till bokningen i MATCHi.

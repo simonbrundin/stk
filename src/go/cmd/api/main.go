@@ -20,6 +20,7 @@ import (
 
 	"github.com/simon/repo-template/internal/actorsmartbook"
 	"github.com/simon/repo-template/internal/matchi"
+	"github.com/simon/repo-template/internal/occupancy"
 	"github.com/simon/repo-template/internal/store"
 	"github.com/simon/repo-template/internal/sync"
 )
@@ -177,6 +178,16 @@ func main() {
 		r.GET("/bookings", sync.ListBookings(db))
 		r.GET("/court-mappings", sync.ListCourtMappings(db))
 		r.POST("/court-mappings", sync.UpsertCourtMapping(db))
+
+		// Skrivläsande jämförelse mellan kommunens bokningar och MATCHi.
+		// Endpointen bokar aldrig något i MATCHi.
+		occupancyService := occupancy.New(
+			actorsmartbookClient,
+			matchiClient,
+			db,
+			actorsmartbookClient.Location(),
+		)
+		r.GET("/matchi/bookings", occupancy.ListBooked(occupancyService))
 	}
 
 	// Synkronisering av kommunens bokningar till MATCHi

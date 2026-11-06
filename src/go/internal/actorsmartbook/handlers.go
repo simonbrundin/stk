@@ -37,13 +37,13 @@ func ListAppointments(client *Client) gin.HandlerFunc {
 		loc := client.Location()
 
 		now := time.Now().In(loc)
-		from, err := parseTimeParam(c.Query("from"), loc, now)
+		from, err := ParseTimeParam(c.Query("from"), loc, now)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, ErrorResponse{Error: fmt.Sprintf("invalid from: %v", err)})
 			return
 		}
 
-		to, err := parseTimeParam(c.Query("to"), loc, from.AddDate(0, 0, defaultWindowDays))
+		to, err := ParseTimeParam(c.Query("to"), loc, from.AddDate(0, 0, defaultWindowDays))
 		if err != nil {
 			c.JSON(http.StatusBadRequest, ErrorResponse{Error: fmt.Sprintf("invalid to: %v", err)})
 			return
@@ -76,7 +76,7 @@ func ListAppointments(client *Client) gin.HandlerFunc {
 	}
 }
 
-// parseTimeParam tolkar en tidsparameter. Tom sträng ger fallback.
+// ParseTimeParam tolkar en tidsparameter. Tom sträng ger fallback.
 // Utan tidszon tolkas värdet som lokal tid.
 //
 // Accepterade format:
@@ -85,7 +85,7 @@ func ListAppointments(client *Client) gin.HandlerFunc {
 //   - "2026-11-02" (lokal midnatt)
 //   - "now", "today"
 //   - relativa uttryck, t.ex. "now+7d", "today-1w", "now + 2h"
-func parseTimeParam(value string, loc *time.Location, fallback time.Time) (time.Time, error) {
+func ParseTimeParam(value string, loc *time.Location, fallback time.Time) (time.Time, error) {
 	value = strings.TrimSpace(value)
 	if value == "" {
 		return fallback, nil
