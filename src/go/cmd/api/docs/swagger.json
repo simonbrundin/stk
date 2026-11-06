@@ -65,6 +65,136 @@
                 }
             }
         },
+        "/bookings": {
+            "get": {
+                "description": "Returnerar de bokningar som speglats mellan det kommunala bokningssystemet och MATCHi.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "sync"
+                ],
+                "summary": "Lista synkade bokningar",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "default": "now",
+                        "description": "Periodens början (RFC3339 eller YYYY-MM-DD)",
+                        "name": "from",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "default": "now+21d",
+                        "description": "Periodens slut (RFC3339 eller YYYY-MM-DD)",
+                        "name": "to",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/store.Booking"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/sync.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/sync.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/court-mappings": {
+            "get": {
+                "description": "Returnerar alla kopplingar som används vid synkroniseringen.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "sync"
+                ],
+                "summary": "Lista kopplingar mellan kommunresurser och MATCHi-banor",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/store.CourtMapping"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/sync.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Kopplar en resurs i det kommunala bokningssystemet till en bana eller sal i MATCHi.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "sync"
+                ],
+                "summary": "Skapa eller uppdatera en koppling",
+                "parameters": [
+                    {
+                        "description": "Koppling",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/store.CourtMapping"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/store.CourtMapping"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/sync.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/sync.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/health": {
             "get": {
                 "description": "Returns the health status of the API",
@@ -104,6 +234,226 @@
                             "additionalProperties": {
                                 "type": "string"
                             }
+                        }
+                    }
+                }
+            }
+        },
+        "/matchi/bookings": {
+            "post": {
+                "description": "Bookar en tid på en bana eller sal. Starttid avrundas nedåt till närmaste halvtimme och sluttid avrundas uppåt till närmaste halvtimme.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "matchi"
+                ],
+                "summary": "Boka en tid i MATCHi",
+                "parameters": [
+                    {
+                        "description": "Bokning",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/matchi.BookRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/matchi.BookingResult"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/matchi.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/matchi.ErrorResponse"
+                        }
+                    },
+                    "502": {
+                        "description": "Bad Gateway",
+                        "schema": {
+                            "$ref": "#/definitions/matchi.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/matchi/bookings/cancel": {
+            "post": {
+                "description": "Avbokar en bokning utan återbetalning och utan notis till kunden.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "matchi"
+                ],
+                "summary": "Avboka en bokning i MATCHi",
+                "parameters": [
+                    {
+                        "description": "Avbokning",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/matchi.CancelRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/matchi.ErrorResponse"
+                        }
+                    },
+                    "502": {
+                        "description": "Bad Gateway",
+                        "schema": {
+                            "$ref": "#/definitions/matchi.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/matchi/bookings/move": {
+            "post": {
+                "description": "Flyttar en befintlig bokning till en ny tid. Tiden avrundas till hela och halva timmar.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "matchi"
+                ],
+                "summary": "Flytta en bokning i MATCHi",
+                "parameters": [
+                    {
+                        "description": "Flytt",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/matchi.MoveRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/matchi.BookingResult"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/matchi.ErrorResponse"
+                        }
+                    },
+                    "502": {
+                        "description": "Bad Gateway",
+                        "schema": {
+                            "$ref": "#/definitions/matchi.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/matchi/slots": {
+            "get": {
+                "description": "Returnerar dagens bokade och fria tidslotter för anläggningen i MATCHi. Tiden avrundas till hela och halva timmar.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "matchi"
+                ],
+                "summary": "Hämta tidslotter från MATCHi",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "default": "today",
+                        "description": "Datum (YYYY-MM-DD)",
+                        "name": "date",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filtrera på bana/sal",
+                        "name": "court",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/matchi.Schedule"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/matchi.ErrorResponse"
+                        }
+                    },
+                    "502": {
+                        "description": "Bad Gateway",
+                        "schema": {
+                            "$ref": "#/definitions/matchi.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/sync": {
+            "post": {
+                "description": "Hämtar bokningarna från det kommunala bokningssystemet för de kommande dagarna och speglar dem i MATCHi. Bokningar som saknas i MATCHi bokas upp och bokningar med ändrad tid flyttas.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "sync"
+                ],
+                "summary": "Synka kommunens bokningar till MATCHi",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/sync.Report"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/sync.ErrorResponse"
                         }
                     }
                 }
@@ -210,6 +560,298 @@
                 "name": {
                     "description": "@Description\tResursens namn\n@Example\t\tBaldershallen 1",
                     "type": "string"
+                }
+            }
+        },
+        "matchi.BookRequest": {
+            "type": "object",
+            "required": [
+                "court_name",
+                "end",
+                "start"
+            ],
+            "properties": {
+                "comment": {
+                    "description": "@Description\tKommentar som läggs till bokningen\n@Example\t\tTennislaget",
+                    "type": "string"
+                },
+                "court_name": {
+                    "description": "@Description\tNamnet på banan/salen, t.ex. \"1. Tennis - Vasa Bryggeri\"\n@Example\t\t1. Tennis - Vasa Bryggeri",
+                    "type": "string"
+                },
+                "customer_id": {
+                    "description": "@Description\tMATCHis kund-id som bokningen görs för\n@Example\t\t1660773",
+                    "type": "integer"
+                },
+                "end": {
+                    "description": "@Description\tSluttid, avrundas uppåt till närmaste halvtimme\n@Example\t\t2026-11-06T13:00:00+01:00",
+                    "type": "string"
+                },
+                "start": {
+                    "description": "@Description\tStarttid, avrundas nedåt till närmaste halvtimme\n@Example\t\t2026-11-06T11:00:00+01:00",
+                    "type": "string"
+                },
+                "type": {
+                    "description": "@Description\tTyp av bokning, t.ex. DEFAULT eller TRAINING\n@Example\t\tDEFAULT",
+                    "type": "string"
+                }
+            }
+        },
+        "matchi.BookingResult": {
+            "type": "object",
+            "properties": {
+                "booking_id": {
+                    "description": "@Description\tMATCHis numeriska boknings-id\n@Example\t\t112291396",
+                    "type": "string"
+                },
+                "court_name": {
+                    "description": "@Description\tNamnet på banan/salen\n@Example\t\t1. Tennis - Vasa Bryggeri",
+                    "type": "string"
+                },
+                "end": {
+                    "description": "@Description\tSluttid i lokal tid\n@Example\t\t2026-11-06T13:00:00+01:00",
+                    "type": "string"
+                },
+                "group_id": {
+                    "description": "@Description\tGrupp-id för bokningen, om den spänner flera slotter\n@Example\t\t14003203",
+                    "type": "string"
+                },
+                "slot_id": {
+                    "description": "@Description\tMATCHis slot-id för den första slotten i bokningen\n@Example\t\t4a66b2f0-3177-4c9c-a7a5-3a54e44a9737",
+                    "type": "string"
+                },
+                "slot_ids": {
+                    "description": "@Description\tDe slotter som bokades\n@Example\t\t[\"4a66b2f0-3177-4c9c-a7a5-3a54e44a9737\"]",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "start": {
+                    "description": "@Description\tStarttid i lokal tid\n@Example\t\t2026-11-06T11:00:00+01:00",
+                    "type": "string"
+                }
+            }
+        },
+        "matchi.CancelRequest": {
+            "type": "object",
+            "required": [
+                "slot_ids"
+            ],
+            "properties": {
+                "slot_ids": {
+                    "description": "@Description\tMATCHis slot-id:n för de bokningar som ska avbokas\n@Example\t\t[\"4a66b2f0-3177-4c9c-a7a5-3a54e44a9737\"]",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "matchi.ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "description": "@Description\tFelmeddelande\n@Example\t\tinvalid time range",
+                    "type": "string"
+                }
+            }
+        },
+        "matchi.MoveRequest": {
+            "type": "object",
+            "required": [
+                "end",
+                "slot_id",
+                "start"
+            ],
+            "properties": {
+                "court_name": {
+                    "description": "@Description\tNamnet på banan/salen, om bokningen ska flyttas till en annan bana\n@Example\t\t1. Tennis - Vasa Bryggeri",
+                    "type": "string"
+                },
+                "end": {
+                    "description": "@Description\tNy sluttid, avrundas uppåt till närmaste halvtimme\n@Example\t\t2026-11-06T13:00:00+01:00",
+                    "type": "string"
+                },
+                "slot_id": {
+                    "description": "@Description\tMATCHis slot-id för den bokning som ska flyttas\n@Example\t\t2a432de2-551d-4f05-8111-23c23b2b04bf",
+                    "type": "string"
+                },
+                "start": {
+                    "description": "@Description\tNy starttid, avrundas nedåt till närmaste halvtimme\n@Example\t\t2026-11-06T11:00:00+01:00",
+                    "type": "string"
+                }
+            }
+        },
+        "matchi.Schedule": {
+            "type": "object",
+            "properties": {
+                "slots": {
+                    "description": "@Description\tDe bokade eller fria slotterna i schemaordning",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/matchi.Slot"
+                    }
+                }
+            }
+        },
+        "matchi.Slot": {
+            "type": "object",
+            "properties": {
+                "bookable": {
+                    "description": "@Description\tOm slotten går att boka (tidsavvikelse eller stängd tid gör den obokbar)\n@Example\t\ttrue",
+                    "type": "boolean"
+                },
+                "booking_id": {
+                    "description": "@Description\tMATCHis numeriska boknings-id\n@Example\t\t112291396",
+                    "type": "string"
+                },
+                "court_name": {
+                    "description": "@Description\tNamnet på banan/salen som slotten tillhör\n@Example\t\t1. Tennis - Vasa Bryggeri",
+                    "type": "string"
+                },
+                "end": {
+                    "description": "@Description\tSluttid i lokal tid (Europe/Stockholm)\n@Example\t\t2026-11-06T07:30:00+01:00",
+                    "type": "string"
+                },
+                "free": {
+                    "description": "@Description\tOm slotten är obokad\n@Example\t\ttrue",
+                    "type": "boolean"
+                },
+                "group_id": {
+                    "description": "@Description\tGrupp-id som sammanlänkar slotter till samma bokning\n@Example\t\t14003203",
+                    "type": "string"
+                },
+                "slot_id": {
+                    "description": "@Description\tMATCHis interna id för slotten\n@Example\t\t4a66b2f0-3177-4c9c-a7a5-3a54e44a9737",
+                    "type": "string"
+                },
+                "start": {
+                    "description": "@Description\tStarttid i lokal tid (Europe/Stockholm)\n@Example\t\t2026-11-06T07:00:00+01:00",
+                    "type": "string"
+                },
+                "status": {
+                    "description": "@Description\tBokningsstatus, t.ex. OK, PENDING eller PARTLY\n@Example\t\tOK",
+                    "type": "string"
+                },
+                "title": {
+                    "description": "@Description\tÖvrig information om slotten, t.ex. kundnamn\n@Example\t\tSTK Verksamhet",
+                    "type": "string"
+                }
+            }
+        },
+        "store.Booking": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "description": "@Description\tTidpunkten när raden skapades\n@Example\t\t2026-11-06T10:00:00Z",
+                    "type": "string"
+                },
+                "end_time": {
+                    "description": "@Description\tSluttid i lokal tid\n@Example\t\t2026-11-06T13:00:00+01:00",
+                    "type": "string"
+                },
+                "kommun_appointment_id": {
+                    "description": "@Description\tId i det kommunala bokningssystemet\n@Example\t\t351930",
+                    "type": "integer"
+                },
+                "kommun_resource_id": {
+                    "description": "@Description\tResursens id i det kommunala bokningssystemet\n@Example\t\t631",
+                    "type": "integer"
+                },
+                "matchi_booking_id": {
+                    "description": "@Description\tMATCHis numeriska boknings-id\n@Example\t\t112291396",
+                    "type": "string"
+                },
+                "matchi_court_id": {
+                    "description": "@Description\tMATCHis id för banan eller salen\n@Example\t\t3622",
+                    "type": "integer"
+                },
+                "matchi_slot_id": {
+                    "description": "@Description\tMATCHis slot-id för bokningen\n@Example\t\t4a66b2f0-3177-4c9c-a7a5-3a54e44a9737",
+                    "type": "string"
+                },
+                "start_time": {
+                    "description": "@Description\tStarttid i lokal tid\n@Example\t\t2026-11-06T11:00:00+01:00",
+                    "type": "string"
+                },
+                "status": {
+                    "description": "@Description\tStatus för bokningen, t.ex. synced\n@Example\t\tsynced",
+                    "type": "string"
+                },
+                "updated_at": {
+                    "description": "@Description\tTidpunkten när raden senast ändrades\n@Example\t\t2026-11-06T10:00:00Z",
+                    "type": "string"
+                }
+            }
+        },
+        "store.CourtMapping": {
+            "type": "object",
+            "properties": {
+                "kommun_resource_id": {
+                    "description": "@Description\tResursens id i det kommunala bokningssystemet\n@Example\t\t628",
+                    "type": "integer"
+                },
+                "kommun_resource_name": {
+                    "description": "@Description\tResursens namn i det kommunala bokningssystemet\n@Example\t\tBaldershallen 1",
+                    "type": "string"
+                },
+                "matchi_court_id": {
+                    "description": "@Description\tMATCHis id för banan eller salen\n@Example\t\t3622",
+                    "type": "integer"
+                },
+                "matchi_court_name": {
+                    "description": "@Description\tMATCHis namn för banan eller salen\n@Example\t\t1. Tennis - Vasa Bryggeri",
+                    "type": "string"
+                }
+            }
+        },
+        "sync.ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "description": "@Description\tFelmeddelande\n@Example\t\tinvalid time range",
+                    "type": "string"
+                }
+            }
+        },
+        "sync.Report": {
+            "type": "object",
+            "properties": {
+                "created": {
+                    "description": "@Description\tAntal bokningar som skapades i MATCHi\n@Example\t\t3",
+                    "type": "integer"
+                },
+                "errors": {
+                    "description": "@Description\tFel som uppstod under synkroniseringen",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "from": {
+                    "description": "@Description\tPeriodens början i lokal tid\n@Example\t\t2026-11-06T00:00:00+01:00",
+                    "type": "string"
+                },
+                "moved": {
+                    "description": "@Description\tAntal bokningar som flyttades i MATCHi\n@Example\t\t1",
+                    "type": "integer"
+                },
+                "orphans": {
+                    "description": "@Description\tAntal bokningar i databasen som inte längre finns i det kommunala systemet\n@Example\t\t0",
+                    "type": "integer"
+                },
+                "skipped": {
+                    "description": "@Description\tAntal bokningar i det kommunala systemet som hoppades över\n@Example\t\t5",
+                    "type": "integer"
+                },
+                "to": {
+                    "description": "@Description\tPeriodens slut i lokal tid\n@Example\t\t2026-11-27T00:00:00+01:00",
+                    "type": "string"
+                },
+                "unchanged": {
+                    "description": "@Description\tAntal bokningar som var oförändrade\n@Example\t\t42",
+                    "type": "integer"
                 }
             }
         }
