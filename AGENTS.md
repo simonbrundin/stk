@@ -788,6 +788,57 @@ Base-overlayn (`environments/base`) refereras av `dev`, `pr` och `prod`, så
 deploymenten finns i alla miljöer. Tilt bygger imagen och patchar
 image-referensen automatiskt.
 
+## Lunchsida (statisk, GitHub Pages)
+
+Sidan `/lunch` visar lunchmenyn för Hovet Restaurang & Café (kommunens
+lunchkö) och är byggd som en **ren statisk sajt** utan backend.
+
+```
+matochmat.se ──▶ scripts/fetch-lunch.ts ──▶ app/data/lunch.json ──▶ /lunch
+```
+
+### Datalager
+
+Menyn publiceras veckovis av matochmat.se och hämtas från deras REST-API:
+
+```
+GET https://www.matochmat.se/rest/v3/menus?restaurant=<id>&week=<ISO-vecka>&year=<år>
+```
+
+Svaret innehåller veckans rätter per vardag (`mandag`..`sondag`). Skriptet
+räknar ut vilka ISO-veckor som behövs för perioden (idag + `LUNCH_DAYS` dagar
+framåt, default 3) och skriver resultatet till `src/nuxt/app/data/lunch.json`.
+
+```bash
+cd src/nuxt && bun run fetch:lunch
+```
+
+| Variabel               | Default | Beskrivning                       |
+| ---------------------- | ------- | --------------------------------- |
+| `LUNCH_RESTAURANT_ID`  | `729`   | Restaurangens id på matochmat.se  |
+| `LUNCH_DAYS`           | `3`     | Antal dagar framåt som visas      |
+| `LUNCH_OUTPUT`         | `app/data/lunch.json` | Sökväg till JSON-filen |
+
+### Statisk byggning
+
+`nuxt.config.ts` läser `NUXT_PAGES_BUILD` och `NUXT_APP_BASE_URL`:
+
+- `NUXT_PAGES_BUILD=true` → SSR + prerender av `/` och `/lunch`, statisk output
+  i `.output/public`
+- `NUXT_APP_BASE_URL` → sökvägen sajten ligger under (t.ex. `/stk/` för
+  GitHub Pages-projektsajt)
+
+```bash
+cd src/nuxt && NUXT_PAGES_BUILD=true NUXT_APP_BASE_URL=/stk/ bun run generate
+```
+
+`.github/workflows/pages.yaml` kör detta och publicerar till GitHub Pages.
+Schemat (`0 5 * * *`) bygger om sajten varje morgon så att menyn är färsk.
+Sidans data bäddas in i den prerenderade HTML:en - ingen runtime-fetch.
+
+> **GitHub Pages** måste ha "Source: GitHub Actions" inställt i
+> repoinställningarna, annars deploy-steget misslyckas.
+
 ## CI/CD och GitOps
 
 | Workflow                            | Trigger            | Vad den gör                                                                 |
@@ -795,6 +846,7 @@ image-referensen automatiskt.
 | `.github/workflows/ci.yaml`         | push till `main`   | Bygger och pushar `nuxt-app`, `go-api`, `rust-api` till GHCR, sätter image-taggarna i `environments/prod/kustomization.yaml` och committar |
 | `.github/workflows/pr-preview.yaml` | PR öppnad/uppdaterad | Bygger samma images med taggen `pr-<NUM>-<sha>` och skapar overlayn `environments/pr/<NUM>/` (base + images + egen HTTPRoute) |
 | `.github/workflows/pr-preview.yaml` | PR stängd          | Tar bort overlayn och uppdaterar `environments/pr/kustomization.yaml`       |
+| `.github/workflows/pages.yaml`      | push/schemalagd    | Hämtar lunchmenyn, bygger statisk sajt och publicerar `/lunch` på GitHub Pages |
 
 ### Image-namn
 
