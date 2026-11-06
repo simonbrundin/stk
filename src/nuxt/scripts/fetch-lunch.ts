@@ -11,7 +11,7 @@
  *
  * Miljövariabler:
  *   LUNCH_RESTAURANT_ID  - restaurangens id (default 729)
- *   LUNCH_DAYS           - antal dagar framåt som ska ingå (default 3)
+ *   LUNCH_DAYS           - antal dagar i menyn (default 7 = hela veckan)
  *   LUNCH_OUTPUT         - sökväg till JSON-filen (default app/data/lunch.json)
  */
 
@@ -23,7 +23,7 @@ const scriptDir = dirname(fileURLToPath(import.meta.url))
 const nuxtDir = resolve(scriptDir, '..')
 
 const RESTAURANT_ID = Number(process.env.LUNCH_RESTAURANT_ID ?? 729)
-const DAYS_AHEAD = Number(process.env.LUNCH_DAYS ?? 3)
+const DAYS_AHEAD = Number(process.env.LUNCH_DAYS ?? 7)
 const OUTPUT = resolve(nuxtDir, process.env.LUNCH_OUTPUT ?? 'app/data/lunch.json')
 
 const TIME_ZONE = 'Europe/Stockholm'
@@ -110,6 +110,18 @@ function todayInTimeZone(): string {
 }
 
 /**
+ * Returnerar måndagen i den ISO-vecka datumet tillhör.
+ */
+function mondayOfWeek(date: string): string {
+  const parsed = new Date(`${date}T00:00:00Z`)
+  const weekday = (parsed.getUTCDay() + 6) % 7
+
+  parsed.setUTCDate(parsed.getUTCDate() - weekday)
+
+  return parsed.toISOString().slice(0, 10)
+}
+
+/**
  * Räknar ut ISO-veckans nummer och år för ett datum.
  */
 function isoWeek(date: Date): { week: number; year: number } {
@@ -184,9 +196,10 @@ async function fetchWeek(week: number, year: number): Promise<WeekMenu> {
  */
 async function buildMenu(): Promise<LunchMenu> {
   const today = todayInTimeZone()
+  const start = mondayOfWeek(today)
   const dates: string[] = []
-  for (let offset = 0; offset <= DAYS_AHEAD; offset += 1) {
-    dates.push(addDays(today, offset))
+  for (let offset = 0; offset < DAYS_AHEAD; offset += 1) {
+    dates.push(addDays(start, offset))
   }
 
   const weeks = new Map<string, { week: number; year: number }>()
@@ -224,6 +237,7 @@ async function buildMenu(): Promise<LunchMenu> {
       id: RESTAURANT_ID,
       name: 'Hovet Restaurang & Café',
       url: RESTAURANT_URL,
+      address: 'Lasarettsvägen 22, Sundsvall',
     },
     timeZone: TIME_ZONE,
     generatedAt: new Date().toISOString(),

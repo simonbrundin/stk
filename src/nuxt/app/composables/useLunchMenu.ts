@@ -20,7 +20,7 @@ export interface LunchDish {
 export interface LunchDay {
   /** Datumet i formatet YYYY-MM-DD. */
   date: string
-  /** Veckedagen på svenska, t.ex. "fredag". */
+  /** Veckedagen på svenska, t.ex. "måndag". */
   weekday: string
   /** Sant om dagen är idag. */
   isToday: boolean
@@ -36,6 +36,7 @@ export interface LunchMenu {
     id: number
     name: string
     url: string
+    address: string
   }
   timeZone: string
   /** När menyn senast hämtades, ISO 8601. */
@@ -51,24 +52,37 @@ export function useLunchMenu(): LunchMenu {
 }
 
 /**
- * Formaterar ett datum som "fredag 6 november".
+ * Formaterar en dag som "Måndag 2/11".
  */
-export function formatMenuDate(date: string): string {
-  const formatted = new Intl.DateTimeFormat('sv-SE', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    timeZone: 'UTC',
-  }).format(new Date(`${date}T00:00:00Z`))
+export function formatMenuDay(date: string, weekday: string): string {
+  const [, month, day] = date.split('-')
+  const name = weekday.charAt(0).toUpperCase() + weekday.slice(1)
 
-  return formatted.charAt(0).toUpperCase() + formatted.slice(1)
+  return `${name} ${Number(day)}/${Number(month)}`
+}
+
+/**
+ * Räknar ut ISO-veckans nummer för ett datum.
+ */
+export function isoWeekNumber(date: string): number {
+  const parsed = new Date(`${date}T00:00:00Z`)
+  const thursday = new Date(parsed.getTime())
+  const weekday = (thursday.getUTCDay() + 6) % 7
+
+  thursday.setUTCDate(thursday.getUTCDate() - weekday + 3)
+
+  const firstThursday = new Date(Date.UTC(thursday.getUTCFullYear(), 0, 4))
+  const firstWeekday = (firstThursday.getUTCDay() + 6) % 7
+  firstThursday.setUTCDate(firstThursday.getUTCDate() - firstWeekday + 3)
+
+  return 1 + Math.round((thursday.getTime() - firstThursday.getTime()) / (7 * 86_400_000))
 }
 
 /**
  * Formaterar tidpunkten menyn hämtades som "6 november 2026 kl. 13:45".
  */
 export function formatGeneratedAt(value: string): string {
-  const formatted = new Intl.DateTimeFormat('sv-SE', {
+  return new Intl.DateTimeFormat('sv-SE', {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
@@ -76,6 +90,4 @@ export function formatGeneratedAt(value: string): string {
     minute: '2-digit',
     timeZone: 'Europe/Stockholm',
   }).format(new Date(value))
-
-  return formatted
 }

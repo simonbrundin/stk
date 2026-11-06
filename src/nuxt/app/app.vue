@@ -1,7 +1,7 @@
 <template>
   <div>
     <NuxtRouteAnnouncer />
-    <nav class="nav">
+    <nav v-if="!isStandalone" class="nav">
       <NuxtLink to="/">Start</NuxtLink>
       <NuxtLink to="/bookings">Bokningar</NuxtLink>
       <NuxtLink to="/lunch">Lunch</NuxtLink>
@@ -9,6 +9,13 @@
     <NuxtPage />
   </div>
 </template>
+
+<script setup lang="ts">
+// Lunchsidan är en fristående meny (designad som ett affisch) och ska inte
+// visa appens navigation.
+const route = useRoute()
+const isStandalone = computed(() => route.path.replace(/\/$/, '') === '/lunch')
+</script>
 
 <style scoped>
 .nav {

@@ -661,9 +661,22 @@ flera resurser kan peka på samma MATCHi-bana.
 
 ### Secrets
 
-`environments/base/secrets/go-api-secrets.enc.yaml` är krypterat med SOPS +
-age och innehåller MATCHi-inloggningen. Databasens `DATABASE_URL` sätts per
-miljö (dev: `repo-template-db-neon`, prod: `repo-template-db-app`).
+MATCHi-inloggningen ligger krypterad i `environments/prod/secrets/go-api-secrets.enc.yaml`
+(SOPS + age) och dekrypteras av Flux (`spec.decryption.provider: sops`).
+
+Dev-miljön har ingen Flux, så hemligheterna dekrypteras lokalt:
+
+```bash
+bash environments/dev/secrets/sync-matchi-env.sh   # skriver environments/dev/secrets/matchi.env
+```
+
+`matchi.env` gitignoras och används av kustomizes `secretGenerator` för att
+skapa `go-api-secrets` i dev. Samma mönster som `db/neon.env`.
+
+> **Viktigt:** hemlighetsreferenserna är `optional: true`, så podden startar
+> även i miljöer utan secret. Klienten vägrar dessutom logga in med ett
+> krypterat värde (`ENC[...]`) - annars skulle ogiltiga inloggningsförsök
+> riskera att Keycloak låser kontot.
 
 > **Flux:** kustomize-controller måste kunna dekryptera SOPS-filer
 > (`spec.decryption.provider: sops`), annars appliceras krypterade värden.
@@ -806,8 +819,9 @@ GET https://www.matochmat.se/rest/v3/menus?restaurant=<id>&week=<ISO-vecka>&year
 ```
 
 Svaret innehåller veckans rätter per vardag (`mandag`..`sondag`). Skriptet
-räknar ut vilka ISO-veckor som behövs för perioden (idag + `LUNCH_DAYS` dagar
-framåt, default 3) och skriver resultatet till `src/nuxt/app/data/lunch.json`.
+räknar ut vilka ISO-veckor som behövs för perioden (måndagen i aktuell
+ISO-vecka + `LUNCH_DAYS` dagar, default 7 = hela veckan) och skriver
+resultatet till `src/nuxt/app/data/lunch.json`.
 
 ```bash
 cd src/nuxt && bun run fetch:lunch
@@ -816,8 +830,37 @@ cd src/nuxt && bun run fetch:lunch
 | Variabel               | Default | Beskrivning                       |
 | ---------------------- | ------- | --------------------------------- |
 | `LUNCH_RESTAURANT_ID`  | `729`   | Restaurangens id på matochmat.se  |
-| `LUNCH_DAYS`           | `3`     | Antal dagar framåt som visas      |
+| `LUNCH_DAYS`           | `7`     | Antal dagar i menyn (hela veckan) |
 | `LUNCH_OUTPUT`         | `app/data/lunch.json` | Sökväg till JSON-filen |
+
+### Utseende
+
+Sidan är designad efter en skärmmockup (1080x1920) av Hovets lunchmeny.
+Geometrin är uppmätt med OCR och pixelanalys, och `scripts/compare-mockup.sh`
+renderar den byggda sidan i headless Chromium och jämför positioner och
+bredder mot mockupen:
+
+```bash
+cd src/nuxt && ./scripts/compare-mockup.sh
+```
+
+Referensmått (mockupen):
+
+| Element            | x     | y    | bredd | höjd |
+| ------------------ | ----- | ---- | ----- | ---- |
+| "Lunchmeny"        | 282   | 88   | 360   | 80   |
+| "V45"              | 680   | 88   | 120   | 62   |
+| Dagrubrik          | 183   | 246  | 139   | 27   |
+| Rättnamn           | 183   | 301  | 98    | 15   |
+| Logotyptext "HOVET"| 574   | 1780 | 398   | 96   |
+
+Sidan använder två självhostade fonter från `src/nuxt/public/fonts/`:
+
+- **Inter** (variabel) - brödtext och beskrivningar
+- **Archivo** (variabel, `wdth`-axeln används) - rubriker och logotyptext
+
+`@font-face` deklareras i `nuxt.config.ts` eftersom `baseURL` behöver ingå i
+sökvägen (t.ex. `/stk/fonts/...` på GitHub Pages).
 
 ### Statisk byggning
 
