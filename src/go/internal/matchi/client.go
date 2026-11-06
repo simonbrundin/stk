@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
@@ -88,6 +89,10 @@ func (c *Client) Login(ctx context.Context) error {
 }
 
 // login utför inloggningen. Anropas med låsen held.
+//
+// Keycloak svarar ibland med en sida som saknar sessionsparametrarna, vilket
+// gör inloggningen flaky. Därför görs inloggningen om ett par gånger innan
+// den ger upp.
 func (c *Client) login(ctx context.Context) error {
 	if c.username == "" || c.password == "" {
 		return errors.New("matchi: användarnamn och lösenord krävs")
@@ -100,6 +105,28 @@ func (c *Client) login(ctx context.Context) error {
 		return errors.New("matchi: lösenordet ser ut att vara krypterat - kontrollera att secreten är dekrypterad")
 	}
 
+	var err error
+
+	for attempt := 1; attempt <= loginAttempts; attempt++ {
+		err = c.loginOnce(ctx)
+		if err == nil {
+			c.loggedIn = true
+			c.loginTime = time.Now()
+
+			return nil
+		}
+
+		if attempt < loginAttempts {
+			log.Printf("matchi: inloggningen misslyckades (försök %d av %d): %v", attempt, loginAttempts, err)
+			time.Sleep(loginRetryDelay * time.Duration(attempt))
+		}
+	}
+
+	return err
+}
+
+// loginOnce gör ett enda inloggningsförsök.
+func (c *Client) loginOnce(ctx context.Context) error {
 	// Steg 1: Starta inloggningen. Kedjan av omdirigeringar slutar i
 	// Keycloak, där vi får session_code, execution och tab_id.
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/login", nil)
@@ -156,9 +183,6 @@ func (c *Client) login(ctx context.Context) error {
 		return errors.New("matchi: inloggning misslyckades, sessionen återfördes till inloggningen")
 	}
 
-	c.loggedIn = true
-	c.loginTime = time.Now()
-
 	return nil
 }
 
@@ -176,6 +200,16 @@ func (c *Client) ensureLogin(ctx context.Context) error {
 
 // sessionTTL är hur länge en session antas hålla utan att förnya den.
 const sessionTTL = 30 * time.Minute
+
+const (
+	// loginAttempts är hur många gånger inloggningen försöks innan den
+	// ger upp.
+	loginAttempts = 3
+
+	// loginRetryDelay är grundväntet mellan inloggningsförsöken. Väntet
+	// fördubblas för varje försök.
+	loginRetryDelay = 2 * time.Second
+)
 
 // realmURLFrom räknar ut Keycloak-realms URL utifrån den URL som
 // inloggningen slutade på.

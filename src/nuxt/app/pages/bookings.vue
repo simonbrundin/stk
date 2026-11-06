@@ -186,9 +186,17 @@ async function loadMatchi(): Promise<void> {
     if (response.errors && response.errors.length > 0) {
       matchiError.value = `Vissa dagar kunde inte läsas från MATCHi: ${response.errors.join('; ')}`
     }
-  } catch {
+  } catch (cause: unknown) {
+    const message =
+      cause && typeof cause === 'object' && 'data' in cause
+        ? ((cause as { data?: { error?: string } }).data?.error ?? '')
+        : ''
+
     matchiBookings.value = new Map()
-    matchiError.value = 'Kunde inte hämta bokningarna från MATCHi.'
+    matchiError.value =
+      message !== ''
+        ? `Kunde inte jämföra med MATCHi: ${message}`
+        : 'Kunde inte jämföra med MATCHi.'
   } finally {
     matchiLoading.value = false
   }
@@ -262,7 +270,7 @@ onMounted(() => {
           <span class="summary__label">bokade timmar</span>
         </div>
         <div class="summary__item">
-          <span class="summary__value">{{ matchiBookedCount }}</span>
+          <span class="summary__value">{{ matchiError === null ? matchiBookedCount : '–' }}</span>
           <span class="summary__label">bokade i MATCHi</span>
         </div>
         <div class="summary__item summary__item--grow">
