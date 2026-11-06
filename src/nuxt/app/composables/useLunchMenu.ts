@@ -79,37 +79,66 @@ export function isoWeekNumber(date: string): number {
 }
 
 /**
- * Antal dagar som ryms på en skärm av storleken 1080x1920 px.
- *
- * Mockupen visar tre dagar på den första skärmen. Fler dagar pressar
- * innehållet för nära logotypen.
+ * En veckas layout på en skärm av storleken 1080x1920 px.
  */
-export const DAYS_PER_SCREEN = 3
+export interface WeekLayout {
+  /** Måndag–torsdag (vänster kolumn). */
+  left: LunchDay[]
+  /** Fredag–söndag (höger kolumn). */
+  right: LunchDay[]
+  /** Veckans soppa, om den finns. */
+  soup: LunchDish | null
+  /** Veckans vegetariska rätt, om den finns. */
+  vegetarian: LunchDish | null
+}
+
+/** Antal dagar i vänster kolumn (måndag–torsdag). */
+export const DAYS_IN_LEFT_COLUMN = 4
+
+/** Rätter som hör till hela veckan och därför visas längst ner. */
+const WEEKLY_HIGHLIGHT = /soppa|vegetarisk/i
+
+/** Lunchbuffén visas inte i menyn. */
+const BUFFET = /lunchbuff/i
 
 /**
- * Delar upp veckans dagar på skärmar.
- *
- * Dagarna sprids jämnt över skärmarna, så att en vecka med sju dagar
- * blir tre skärmar med tre, två och två dagar.
+ * Returnerar den första rätten i veckan vars namn matchar mönstret.
  */
-export function groupDaysIntoScreens(days: LunchDay[]): LunchDay[][] {
-  if (days.length === 0) {
-    return []
+function findWeeklyDish(days: LunchDay[], pattern: RegExp): LunchDish | null {
+  for (const day of days) {
+    const dish = day.dishes.find((candidate) => pattern.test(candidate.name))
+    if (dish) {
+      return dish
+    }
   }
 
-  const screenCount = Math.ceil(days.length / DAYS_PER_SCREEN)
-  const perScreen = Math.floor(days.length / screenCount)
-  const remainder = days.length % screenCount
-  const screens: LunchDay[][] = []
+  return null
+}
 
-  let index = 0
-  for (let screen = 0; screen < screenCount; screen += 1) {
-    const size = perScreen + (screen < remainder ? 1 : 0)
-    screens.push(days.slice(index, index + size))
-    index += size
+/**
+ * Bygger veckans layout.
+ *
+ * Veckans dagar delas i två kolumner (måndag–torsdag till vänster,
+ * fredag–söndag till höger). Soppa och vegetarisk rätt plockas bort ur
+ * dagarna och visas i stället längst ner på sidan.
+ */
+export function buildWeekLayout(days: LunchDay[]): WeekLayout {
+  const soup = findWeeklyDish(days, /soppa/i)
+  const vegetarian = findWeeklyDish(days, /vegetarisk/i)
+
+  const cleaned = days.map((day) => ({
+    ...day,
+    dishes: day.dishes.filter(
+      (dish) => !BUFFET.test(dish.name) && !WEEKLY_HIGHLIGHT.test(dish.name),
+    ),
+  }))
+
+  return {
+    left: cleaned.slice(0, DAYS_IN_LEFT_COLUMN),
+    right: cleaned.slice(DAYS_IN_LEFT_COLUMN, 7),
+    soup,
+    vegetarian,
   }
-
-  return screens
 }
 
 /**

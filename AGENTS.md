@@ -896,8 +896,9 @@ På smalare skärmar skalas hela kanvasen ner med `zoom`
 #### Logotyp
 
 `src/nuxt/public/images/hovet-logo.png` är Hovets logotyp, exporterad ur
-mockupens sidfot. Bilden placeras på exakt samma position som i mockupen
-(x 574-972, y 1681-1868) och `mix-blend-mode: multiply` tar bort den
+mockupens sidfot. Bilden placeras i samma nedre högra hörn som i mockupen
+(högerkant x=972, botten y=1868) men i 70 % skala (280x131 px), så att
+ordmärket inte dominerar sidfoten. `mix-blend-mode: multiply` tar bort den
 vita bakgrunden. Sökvägen byggs av `runtimeConfig.app.baseURL` så att den
 fungerar under GitHub Pages `baseURL`.
 

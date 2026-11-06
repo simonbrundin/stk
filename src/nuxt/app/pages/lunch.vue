@@ -31,8 +31,8 @@
         class="screen__logo"
         :src="logoSrc"
         :alt="menu.restaurant.name"
-        width="398"
-        height="187"
+        width="280"
+        height="131"
       />
     </section>
   </div>
@@ -234,13 +234,13 @@ onBeforeUnmount(() => {
 /* --------------------------------------------------------------- Logotyp */
 
 /* Logotypen är en beskärning av mockupens sidfot (x 574-972, y 1681-1868)
-   och placeras därför på exakt samma position. */
+   och placeras därför i samma nedre högra hörn, men i mindre skala. */
 .screen__logo {
   position: absolute;
   right: 108px;
   bottom: 52px;
-  width: 398px;
-  height: 187px;
+  width: 280px;
+  height: 131px;
   mix-blend-mode: multiply;
 }
 </style>
