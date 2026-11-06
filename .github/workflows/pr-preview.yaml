@@ -1,0 +1,350 @@
+name: PR Preview Deployment
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  pull_request_target:
+    types: [closed]
+
+permissions:
+  contents: write
+  packages: write
+  pull-requests: write
+
+env:
+  REGISTRY: ghcr.io/${{ github.repository_owner }}
+  IMAGE_PREFIX: repo-template
+
+jobs:
+  # ============================================
+  # JOB 1: Bygg och publicera PR-images
+  # ============================================
+  build-push:
+    name: Bygg ${{ matrix.component }}
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - component: nuxt-app
+            context: src/nuxt
+          - component: go-api
+            context: src/go
+          - component: rust-api
+            context: src/rust
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+
+      - name: Sätt upp Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Bygg och pusha image
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.context }}/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-${{ matrix.component }}:pr-${{ github.event.pull_request.number }}-${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-${{ matrix.component }}:pr-${{ github.event.pull_request.number }}-latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: true
+
+  # ============================================
+  # JOB 2: Skapa/uppdatera PR Preview
+  # ============================================
+  create-preview:
+    name: Skapa PR Preview
+    if: github.event_name == 'pull_request'
+    needs: build-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
+      - name: Skapa preview-resurser
+        env:
+          PR_NUM: ${{ github.event.pull_request.number }}
+          SHA: ${{ github.sha }}
+          REGISTRY: ${{ env.REGISTRY }}
+          IMAGE_PREFIX: ${{ env.IMAGE_PREFIX }}
+        run: |
+          python3 << 'EOF'
+          import os
+          import yaml
+
+          pr_num = os.environ["PR_NUM"]
+          sha = os.environ["SHA"]
+          registry = os.environ["REGISTRY"]
+          prefix = os.environ["IMAGE_PREFIX"]
+          tag = f"pr-{pr_num}-{sha}"
+
+          pr_dir = f"environments/pr/{pr_num}"
+          os.makedirs(pr_dir, exist_ok=True)
+
+          def dump(path, header, document):
+              with open(path, "w") as handle:
+                  handle.write(header)
+                  yaml.dump(document, handle, default_flow_style=False, sort_keys=False)
+
+          # Overlay: base + image-taggar + egen namespace
+          overlay = {
+              "apiVersion": "kustomize.config.k8s.io/v1beta1",
+              "kind": "Kustomization",
+              "resources": ["../../base", "httproute.yaml"],
+              "namespace": f"pr-{pr_num}",
+              "images": [
+                  {
+                      "name": "nuxt-app",
+                      "newName": f"{registry}/{prefix}-nuxt-app",
+                      "newTag": tag,
+                  },
+                  {
+                      "name": "go-api",
+                      "newName": f"{registry}/{prefix}-go-api",
+                      "newTag": tag,
+                  },
+                  {
+                      "name": "rust-api",
+                      "newName": f"{registry}/{prefix}-rust-api",
+                      "newTag": tag,
+                  },
+              ],
+          }
+
+          dump(
+              f"{pr_dir}/kustomization.yaml",
+              f"# DO NOT EDIT MANUALLY\n"
+              f"# Genererats av GitHub Actions (PR Preview) for PR #{pr_num}\n\n",
+              overlay,
+          )
+
+          httproute = {
+              "apiVersion": "gateway.networking.k8s.io/v1",
+              "kind": "HTTPRoute",
+              "metadata": {
+                  "name": "app",
+                  "annotations": {
+                      "external-dns.alpha.kubernetes.io/hostname": f"pr-{pr_num}.example.com."
+                  },
+              },
+              "spec": {
+                  "parentRefs": [
+                      {
+                          "kind": "Gateway",
+                          "name": "traefik-gateway",
+                          "namespace": "flux-system",
+                      }
+                  ],
+                  "hostnames": [f"pr-{pr_num}.example.com"],
+                  "rules": [
+                      {
+                          "backendRefs": [
+                              {
+                                  "kind": "Service",
+                                  "name": "nuxt-app-service",
+                                  "port": 80,
+                              }
+                          ]
+                      }
+                  ],
+              },
+          }
+
+          dump(
+              f"{pr_dir}/httproute.yaml",
+              f"# DO NOT EDIT MANUALLY\n"
+              f"# Genererats av GitHub Actions (PR Preview) for PR #{pr_num}\n\n",
+              httproute,
+          )
+
+          print(f"Created {pr_dir}/kustomization.yaml and httproute.yaml (tag {tag})")
+
+          # Uppdatera environments/pr/kustomization.yaml
+          kustomization_file = "environments/pr/kustomization.yaml"
+
+          existing_resources = []
+          if os.path.exists(kustomization_file):
+              with open(kustomization_file, "r") as handle:
+                  existing = yaml.safe_load(handle)
+              if existing and "resources" in existing:
+                  existing_resources = [str(resource) for resource in existing["resources"]]
+
+          # Ta bort tidigare varianter av denna PR
+          existing_resources = [
+              resource
+              for resource in existing_resources
+              if resource not in (pr_num, f"./{pr_num}")
+              and not resource.endswith(f"/{pr_num}")
+          ]
+
+          # Behall alltid platshallaren sa att Flux-kustomizationen inte blir tom
+          placeholder = "preview-info.yaml"
+          if placeholder not in existing_resources:
+              existing_resources.insert(0, placeholder)
+
+          existing_resources.append(f"./{pr_num}")
+          existing_resources = sorted(
+              set(existing_resources), key=lambda resource: (resource != placeholder, resource)
+          )
+
+          dump(
+              kustomization_file,
+              "# DO NOT EDIT MANUALLY\n"
+              "# Denna fil uppdateras automatiskt av GitHub Actions (PR Preview).\n"
+              "#\n"
+              "# Varje PR far en egen overlay-mapp (./<PR-nummer>) som innehaller\n"
+              "# base-overlayn + image-taggar + en egen HTTPRoute. Flux (Kustomization\n"
+              '# "repo-template-previews") renderar hela environments/pr.\n\n',
+              {
+                  "apiVersion": "kustomize.config.k8s.io/v1beta1",
+                  "kind": "Kustomization",
+                  "resources": existing_resources,
+              },
+          )
+
+          print(f"Updated {kustomization_file}")
+          print(f"Resources: {existing_resources}")
+          EOF
+
+      - name: Committa och pusha
+        env:
+          PR_NUM: ${{ github.event.pull_request.number }}
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+
+          git add environments/pr/
+
+          if git diff --staged --quiet; then
+            echo "Inga andringar att committa"
+            exit 0
+          fi
+
+          git commit -m "chore: add preview resources for PR $PR_NUM
+
+          Auto-generated by GitHub Actions PR Preview workflow.
+          Flux will reconcile these manifests to create a preview deployment."
+
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
+
+          echo "Pushade preview-manifests"
+
+      - name: Kommentera PR
+        if: always()
+        env:
+          PR_NUM: ${{ github.event.pull_request.number }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr comment "$PR_NUM" --body "## PR Preview Deployment
+
+          Preview-miljon `pr-$PR_NUM` deployas med den har PR:ns images.
+
+          | Resurs | Varde |
+          |--------|-------|
+          | **Namespace** | `pr-$PR_NUM` |
+          | **URL** | https://pr-$PR_NUM.example.com |
+
+          > [!NOTE]
+          > Det kan ta 1-2 minuter innan Flux har reconcilat alla resurser."
+
+  # ============================================
+  # JOB 3: Stada bort preview vid PR-stangning
+  # ============================================
+  cleanup-preview:
+    name: Stada upp PR Preview
+    if: github.event_name == 'pull_request_target'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          sparse-checkout: |
+            environments/pr
+
+      - name: Ta bort preview-resurser
+        env:
+          PR_NUM: ${{ github.event.pull_request.number }}
+        run: |
+          python3 << 'EOF'
+          import os
+          import shutil
+          import yaml
+
+          pr_num = os.environ["PR_NUM"]
+
+          pr_dir = f"environments/pr/{pr_num}"
+          if os.path.exists(pr_dir):
+              shutil.rmtree(pr_dir)
+              print(f"Tog bort {pr_dir}")
+          else:
+              print(f"{pr_dir} fanns inte")
+
+          kustomization_file = "environments/pr/kustomization.yaml"
+          if os.path.exists(kustomization_file):
+              with open(kustomization_file, "r") as handle:
+                  kustomization = yaml.safe_load(handle)
+
+              if kustomization and "resources" in kustomization:
+                  original_count = len(kustomization["resources"])
+                  kustomization["resources"] = [
+                      resource
+                      for resource in kustomization["resources"]
+                      if str(resource) not in (pr_num, f"./{pr_num}")
+                      and not str(resource).endswith(f"/{pr_num}")
+                  ]
+
+                  if len(kustomization["resources"]) < original_count:
+                      with open(kustomization_file, "w") as handle:
+                          handle.write("# DO NOT EDIT MANUALLY\n")
+                          handle.write("# Denna fil uppdateras automatiskt av GitHub Actions (PR Preview).\n\n")
+                          yaml.dump(kustomization, handle, default_flow_style=False, sort_keys=False)
+                      print(f"Uppdaterade {kustomization_file}")
+                      print(f"Kvarvarande resurser: {kustomization['resources']}")
+                  else:
+                      print(f"{pr_num} fanns inte i kustomization.yaml")
+          EOF
+
+      - name: Committa och pusha
+        env:
+          PR_NUM: ${{ github.event.pull_request.number }}
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+
+          git add environments/pr/
+
+          if git diff --staged --quiet; then
+            echo "Inga andringar att committa"
+            exit 0
+          fi
+
+          git commit -m "chore: remove preview resources for PR $PR_NUM
+
+          Auto-generated cleanup by GitHub Actions.
+          Flux will clean up Kubernetes resources."
+
+          git push origin main
+
+          echo "Tog bort preview-resurser"
+
+      - name: Kommentera PR
+        if: always()
+        env:
+          PR_NUM: ${{ github.event.pull_request.number }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr comment "$PR_NUM" --body "## PR Preview Stangd
+
+          Preview-miljon `pr-$PR_NUM` haller pa att stadas bort.
+
+          Flux tar bort alla Kubernetes-resurser."

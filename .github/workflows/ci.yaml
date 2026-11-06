@@ -1,0 +1,127 @@
+name: CI
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  packages: write
+
+env:
+  REGISTRY: ghcr.io/${{ github.repository_owner }}
+  IMAGE_PREFIX: repo-template
+
+jobs:
+  # ============================================
+  # JOB 1: Bygg och publicera alla images
+  # ============================================
+  build-push:
+    name: Bygg ${{ matrix.component }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - component: nuxt-app
+            context: src/nuxt
+          - component: go-api
+            context: src/go
+          - component: rust-api
+            context: src/rust
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Sätt upp Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Bygg och pusha image
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.context }}/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-${{ matrix.component }}:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-${{ matrix.component }}:main
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: true
+
+  # ============================================
+  # JOB 2: Uppdatera image-taggarna i prod-overlayn
+  # ============================================
+  # GitOps: vi commit:t image-taggarna, Flux deployar. Klustret rörs aldrig direkt.
+  update-prod:
+    name: Uppdatera prod-images
+    needs: build-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Sätt image-taggarna i environments/prod/kustomization.yaml
+        env:
+          SHA: ${{ github.sha }}
+        run: |
+          python3 << 'EOF'
+          import os
+          import yaml
+
+          path = "environments/prod/kustomization.yaml"
+          sha = os.environ["SHA"]
+
+          class BlockDumper(yaml.SafeDumper):
+              """Behåller multi-rad-strängar som block-scalar för läsbarhet."""
+
+          def str_presenter(dumper, data):
+              if "\n" in data:
+                  return dumper.represent_scalar("tag:yaml.org,2002:str", data, style="|")
+              return dumper.represent_scalar("tag:yaml.org,2002:str", data)
+
+          BlockDumper.add_representer(str, str_presenter)
+
+          with open(path, "r") as f:
+              kustomization = yaml.safe_load(f)
+
+          for image in kustomization.get("images", []):
+              image["newTag"] = sha
+
+          header = (
+              "# Production overlay\n"
+              "#\n"
+              "# DO NOT EDIT MANUALLY - `images` uppdateras av GitHub Actions (.github/workflows/ci.yaml)\n"
+              "# Nya taggar sätts på varje merge till main och committas tillbaka, så att Flux\n"
+              "# deployar exakt den image som byggdes.\n\n"
+          )
+
+          with open(path, "w") as f:
+              f.write(header)
+              yaml.dump(
+                  kustomization,
+                  f,
+                  Dumper=BlockDumper,
+                  default_flow_style=False,
+                  sort_keys=False,
+              )
+
+          print(f"✓ Uppdaterade {path} till tagg {sha}")
+          EOF
+
+      - name: Committa och pusha
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+
+          git add environments/prod/kustomization.yaml
+
+          if git diff --staged --quiet; then
+            echo "Inga ändringar att committa"
+            exit 0
+          fi
+
+          git commit -m "chore: update production images to ${{ github.sha }}"
+          git push origin HEAD:main
+
+          echo "✓ Committade och pushade prod-images"
