@@ -17,6 +17,9 @@ src/go/bin/
 environments/dev/charts/
 environments/dev/pgadmin/charts/
 
+# Dekrypterade MATCHi-credentials för dev (gitignoras - innehåller riktiga lösenord)
+environments/dev/secrets/matchi.env
+
 # Neon-credentials för dev (gitignoras - innehåller riktiga lösenord)
 environments/dev/db/neon.env
 environments/dev/pgadmin/pgadmin-values.yaml

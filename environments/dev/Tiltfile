@@ -64,6 +64,9 @@ allocate_port("pgAdmin", 80)
 local("test -f db/neon.env || (echo 'FEL: environments/dev/db/neon.env saknas - se environments/dev/db/README.md' && exit 1)")
 local("bash db/sync-neon-env.sh")
 
+# MATCHi-hemligheterna dekrypteras från den SOPS-krypterade filen i prod.
+local("bash secrets/sync-matchi-env.sh")
+
 k8s_yaml(kustomize(".",
         flags=["--load-restrictor", "LoadRestrictionsNone", "--enable-helm"]))
 

@@ -12,6 +12,7 @@ namespace: repo-template
 resources:
   - ../base
   - ./db
+  - ./secrets
   - httproute.yaml
 
 images:

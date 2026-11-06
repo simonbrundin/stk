@@ -9,6 +9,19 @@ kind: Kustomization
 
 namespace: repo-template
 
+# Hemligheterna för MATCHi dekrypteras lokalt från den SOPS-krypterade
+# filen i prod till secrets/matchi.env (gitignoras).
+# Se ./secrets/sync-matchi-env.sh.
+generatorOptions:
+  disableNameSuffixHash: true
+
+secretGenerator:
+  - name: go-api-secrets
+    envs:
+      - secrets/matchi.env
+    options:
+      disableNameSuffixHash: true
+
 resources:
   - ../base
   - db
