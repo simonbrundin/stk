@@ -1,0 +1,155 @@
+basePath: /
+definitions:
+  actorsmartbook.Appointment:
+    properties:
+      css_class:
+        description: "@Description\tFärgklass i det kommunala systemet, används för
+          att skilja kategorier\n@Example\t\tactorcolor5"
+        type: string
+      description:
+        description: "@Description\tBeskrivning, används av kommunen för att ange
+          bokande organisation\n@Example\t\tBergsåkers Badmintonklubb"
+        type: string
+      duration_minutes:
+        description: "@Description\tBookad tid i minuter\n@Example\t\t90"
+        type: integer
+      encoded_id:
+        description: "@Description\tKodad id som används för att anropa boknings-API:t
+          med\n@Example\t\teyJWYWx1ZSI6MzM3NjY3LCJUeXBlTmFtZSI6IlN5c3RlbS5JbnQzMiJ9"
+        type: string
+      end:
+        description: "@Description\tSluttid i lokal tid (Europe/Stockholm)\n@Example\t\t2026-11-02T19:30:00+01:00"
+        type: string
+      id:
+        description: "@Description\tUnik id för bokningen i det kommunala systemet\n@Example\t\t337667"
+        type: integer
+      location:
+        description: "@Description\tSal eller resurs som bokningen avser, utvuxen
+          ur ämnet\n@Example\t\tBaldershallen 1"
+        type: string
+      recurring:
+        description: "@Description\tOm bokningen är en del av en återkommande serie\n@Example\t\tfalse"
+        type: boolean
+      resources:
+        description: "@Description\tResurser som bokningen är knuten till"
+        items:
+          $ref: '#/definitions/actorsmartbook.Resource'
+        type: array
+      start:
+        description: "@Description\tStarttid i lokal tid (Europe/Stockholm)\n@Example\t\t2026-11-02T18:00:00+01:00"
+        type: string
+      subject:
+        description: "@Description\tÄmne enligt det kommunala systemet, t.ex. \"18:00
+          - 19:30 Baldershallen 1\"\n@Example\t\t18:00 - 19:30 Baldershallen 1"
+        type: string
+      visible:
+        description: "@Description\tOm bokningen är synlig i det kommunala bokningssystemet\n@Example\t\ttrue"
+        type: boolean
+    type: object
+  actorsmartbook.AppointmentListResponse:
+    properties:
+      appointments:
+        description: "@Description\tAlla bokningar i perioden"
+        items:
+          $ref: '#/definitions/actorsmartbook.Appointment'
+        type: array
+      count:
+        description: "@Description\tAntal bokningar i perioden\n@Example\t\t151"
+        type: integer
+      from:
+        description: "@Description\tPeriodens början i lokal tid\n@Example\t\t2026-11-02T00:00:00+01:00"
+        type: string
+      to:
+        description: "@Description\tPeriodens slut i lokal tid\n@Example\t\t2026-11-09T00:00:00+01:00"
+        type: string
+    type: object
+  actorsmartbook.ErrorResponse:
+    properties:
+      error:
+        description: "@Description\tFelmeddelande\n@Example\t\tinvalid time range"
+        type: string
+    type: object
+  actorsmartbook.Resource:
+    properties:
+      id:
+        description: "@Description\tResursens id i det kommunala systemet\n@Example\t\t628"
+        type: integer
+      name:
+        description: "@Description\tResursens namn\n@Example\t\tBaldershallen 1"
+        type: string
+    type: object
+info:
+  contact: {}
+  description: API for repo-template project
+  title: Repo Template API
+  version: "1.0"
+paths:
+  /actorsmartbook/appointments:
+    get:
+      consumes:
+      - application/json
+      description: Returnerar alla bokningar i det kommunala bokningssystemet (Actor
+        Smartbook) för en given period. Tiderna returneras i lokal tid (Europe/Stockholm).
+      parameters:
+      - default: now
+        description: Periodens början (RFC3339, YYYY-MM-DD eller 'now')
+        in: query
+        name: from
+        type: string
+      - default: now+7d
+        description: Periodens slut (RFC3339, YYYY-MM-DD eller 'now+7d')
+        in: query
+        name: to
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/actorsmartbook.AppointmentListResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/actorsmartbook.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/actorsmartbook.ErrorResponse'
+        "502":
+          description: Bad Gateway
+          schema:
+            $ref: '#/definitions/actorsmartbook.ErrorResponse'
+      summary: Hämta bokningar från det kommunala bokningssystemet
+      tags:
+      - actorsmartbook
+  /health:
+    get:
+      description: Returns the health status of the API
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Health check
+      tags:
+      - health
+  /hello:
+    get:
+      description: Returns a hello message
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Hello world
+      tags:
+      - greeting
+swagger: "2.0"
