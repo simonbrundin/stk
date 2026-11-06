@@ -6,10 +6,12 @@ kind: Kustomization
 
 resources:
   - namespace.yaml
+  - secrets/go-api-secrets.enc.yaml
   - nuxt-deployment.yaml
   - nuxt-service.yaml
   - go-api-deployment.yaml
   - go-api-service.yaml
+  - matchi-sync-cronjob.yaml
   - rust-api-deployment.yaml
   - rust-api-service.yaml
   # Database resources are added by environment overlays.

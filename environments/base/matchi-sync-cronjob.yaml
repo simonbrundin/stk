@@ -1,0 +1,56 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: matchi-sync
+spec:
+  schedule: "0 3 * * *"
+  timeZone: "Europe/Stockholm"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        metadata:
+          labels:
+            app: matchi-sync
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: matchi-sync
+              image: go-api:latest
+              command: ["/sync"]
+              resources:
+                requests:
+                  memory: "32Mi"
+                  cpu: "50m"
+                limits:
+                  memory: "128Mi"
+                  cpu: "200m"
+              env:
+                - name: MATCHI_USERNAME
+                  valueFrom:
+                    secretKeyRef:
+                      name: go-api-secrets
+                      key: matchi-username
+                - name: MATCHI_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: go-api-secrets
+                      key: matchi-password
+                - name: ACTORSMARTBOOK_BASE_URL
+                  value: "https://sundsvall.actorsmartbook.se"
+                - name: ACTORSMARTBOOK_RESOURCE_FILTER
+                  value: "628,629,630,631,632,751,633,634,635,636,637"
+                - name: SYNC_DAYS
+                  value: "21"
+                - name: MATCHI_CUSTOMER_ID
+                  value: "1660773"
+                # Tomt filter speglar ALL bokningar for de mappade resurserna.
+                # Satt en regex (t.ex. "Sundsvalls Tennisklubb") for att begransa
+                # vilka organisationers bokningar som hamnar i MATCHi.
+                - name: SYNC_ORGANIZATION_FILTER
+                  value: ""
+                - name: SYNC_REMOVE_ORPHANS
+                  value: "false"
