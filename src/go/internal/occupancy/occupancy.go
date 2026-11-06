@@ -281,6 +281,17 @@ func (s *Service) schedules(ctx context.Context, days []time.Time) (map[string]*
 	return schedules, errs
 }
 
+// Invalidate tömmer cachen för scheman från MATCHi.
+//
+// Anropas när något har ändrats i MATCHi, så att nästa läsning inte
+// returnerar en gammal bild av verkligheten.
+func (s *Service) Invalidate() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.cache = map[string]cachedSchedule{}
+}
+
 // cached returnerar ett cachat schema om det fortfarande är färskt.
 func (s *Service) cached(key string) (*matchi.Schedule, bool) {
 	s.mu.Lock()

@@ -52,3 +52,39 @@ export async function fetchMatchiBookings(from: string, to: string): Promise<Mat
     },
   })
 }
+
+/** En begäran om att boka en tid i MATCHi för en bokning i det kommunala systemet. */
+export interface LinkBookingRequest {
+  /** Id:t för bokningen i det kommunala bokningssystemet. */
+  appointment_id: number
+  /** Starttid i lokal tid (Europe/Stockholm). */
+  start: string
+  /** Sluttid i lokal tid (Europe/Stockholm). */
+  end: string
+  /** MATCHis id för banan eller salen. */
+  matchi_court_id?: number
+}
+
+/** Svaret från en bokning i MATCHi. */
+export interface LinkBookingResult {
+  appointment_id: number
+  location?: string
+  start: string
+  end: string
+  court_name: string
+  matchi_booking_id?: string
+  matchi_slot_id?: string
+}
+
+/**
+ * Bokar en tid i MATCHi för en bokning i det kommunala systemet.
+ *
+ * Serveraten kontrollerar att bokningen finns i det kommunala systemet och
+ * sparar kopplingen mellan de båda bokningarna.
+ */
+export async function linkMatchiBooking(request: LinkBookingRequest): Promise<LinkBookingResult> {
+  return await $fetch<LinkBookingResult>('/api/matchi/bookings/link', {
+    method: 'POST',
+    body: request,
+  })
+}

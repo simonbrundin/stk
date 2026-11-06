@@ -622,6 +622,7 @@ Smartbook) till MATCHi, där klubbens medlemmar bokar banor.
 | `POST /matchi/bookings`     | Boka en bana                                         |
 | `POST /matchi/bookings/move`| Flytta en bokning                                    |
 | `POST /matchi/bookings/cancel` | Avboka en bokning                                 |
+| `POST /matchi/bookings/link`| Boka en kommunbokning i MATCHi och spara kopplingen  |
 | `GET /bookings`             | Lokal spegel av synkade bokningar                    |
 | `GET/POST /court-mappings`  | Koppling kommunresurs ↔ MATCHi-bana                   |
 | `POST /sync`                | Kör en synkronisering manuellt                       |
@@ -671,6 +672,40 @@ Så här fungerar jämförelsen:
 
 > **Ej mappade resurser:** resurser utan koppling i `court_mappings` (t.ex.
 > "Baldershallen Coworking-rum") markeras aldrig som bokade i MATCHi.
+
+### Bokning av en enskild kommunbokning i MATCHi
+
+`POST /matchi/bookings/link` bokar en tid i MATCHi för **en** bokning i det
+kommunala systemet och sparar kopplingen mellan dem (i `bookings`, samma tabell
+som synkroniseringen använder).
+
+Body:
+
+```json
+{
+  "appointment_id": 339289,
+  "start": "2026-11-07T10:00:00+01:00",
+  "end": "2026-11-07T11:30:00+01:00",
+  "matchi_court_id": 12486
+}
+```
+
+Serveraten hämtar bokningen från det kommunala systemet i ett smalt fönster
+runtiden och använder **kommunens** tider - klientens tider används bara för
+att hitta bokningen. Tiden avrundas till hela och halva timmar, precis som
+vid synkroniseringen.
+
+På `/bookings` visas en knapp "Boka i MATCHi" på de bokningar som inte är
+bokade i MATCHi, har en koppling i `court_mappings` och ligger i framtiden.
+Efter bokningen laddas jämförelsen om, så raden blir grön direkt.
+
+> **Cache:** schemat från MATCHi cachas i 90 sekunder. Efter en bokning
+> töms cachen (`occupancy.Service.Invalidate`), annars skulle den nya
+> bokningen synas först efter att cachen gått ut.
+
+> **Tidsgräns:** MATCHis schemasidor är stora, så både jämförelsen och
+> bokningen kan ta uppemot en minut. nginx i `src/nuxt/Dockerfile` har därför
+> `proxy_read_timeout 180s`.
 
 ### Synkronisering
 

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Appointment } from '~/composables/useAppointments'
+import type { CourtMapping } from '~/composables/useCourtMappings'
 import type { MatchiBooking } from '~/composables/useMatchiBookings'
 
 const today = new Date().toISOString().slice(0, 10)
@@ -17,6 +18,15 @@ const search = ref('')
 const matchiBookings = ref<Map<number, MatchiBooking[]>>(new Map())
 const matchiLoading = ref(false)
 const matchiError = ref<string | null>(null)
+
+/** Kopplingar mellan kommunresurser och MATCHi-banor. */
+const courtMappings = ref<CourtMapping[]>([])
+
+/** Bokningar som just bokas i MATCHi. */
+const bookingInProgress = ref<Set<number>>(new Set())
+
+/** Felmeddelanden per bokning. */
+const bookingErrors = ref<Map<number, string>>(new Map())
 
 const timeZone = 'Europe/Stockholm'
 
@@ -121,6 +131,88 @@ function matchiRange(appointment: Appointment): string {
     .join(', ')
 }
 
+/** MATCHi-banan som en bokning i det kommunala systemet gäller. */
+function courtFor(appointment: Appointment): CourtMapping | undefined {
+  const location = appointment.location.trim().toLowerCase()
+
+  const byName = courtMappings.value.find(
+    (mapping) => mapping.kommun_resource_name.trim().toLowerCase() === location,
+  )
+  if (byName) {
+    return byName
+  }
+
+  const resourceIds = appointment.resources.map((resource) => resource.id)
+
+  return courtMappings.value.find((mapping) => resourceIds.includes(mapping.kommun_resource_id))
+}
+
+/** Om det går att boka tiden i MATCHi. */
+function canBookInMatchi(appointment: Appointment): boolean {
+  if (isBookedInMatchi(appointment)) {
+    return false
+  }
+
+  if (courtFor(appointment) === undefined) {
+    return false
+  }
+
+  return new Date(appointment.start).getTime() > Date.now()
+}
+
+/** Boken pågår just nu. */
+function isBooking(appointment: Appointment): boolean {
+  return bookingInProgress.value.has(appointment.id)
+}
+
+/** Felmeddelandet för en bokning, om det finns något. */
+function bookingError(appointment: Appointment): string | undefined {
+  return bookingErrors.value.get(appointment.id)
+}
+
+/**
+ * Bokar tiden i MATCHi och kopplar den till bokningen i det kommunala
+ * systemet.
+ */
+async function bookInMatchi(appointment: Appointment): Promise<void> {
+  const court = courtFor(appointment)
+  if (court === undefined) {
+    return
+  }
+
+  bookingInProgress.value = new Set(bookingInProgress.value).add(appointment.id)
+  const errors = new Map(bookingErrors.value)
+  errors.delete(appointment.id)
+  bookingErrors.value = errors
+
+  try {
+    await linkMatchiBooking({
+      appointment_id: appointment.id,
+      start: appointment.start,
+      end: appointment.end,
+      matchi_court_id: court.matchi_court_id,
+    })
+
+    await loadMatchi()
+  } catch (cause: unknown) {
+    const message =
+      cause && typeof cause === 'object' && 'data' in cause
+        ? ((cause as { data?: { error?: string } }).data?.error ?? '')
+        : ''
+
+    const updated = new Map(bookingErrors.value)
+    updated.set(
+      appointment.id,
+      message !== '' ? message : 'Kunde inte boka tiden i MATCHi.',
+    )
+    bookingErrors.value = updated
+  } finally {
+    const pending = new Set(bookingInProgress.value)
+    pending.delete(appointment.id)
+    bookingInProgress.value = pending
+  }
+}
+
 function selectPreset(days: number): void {
   from.value = today
   to.value = addDays(today, days - 1)
@@ -148,7 +240,16 @@ async function load(): Promise<void> {
     loading.value = false
   }
 
-  await loadMatchi()
+  await Promise.all([loadMatchi(), loadCourtMappings()])
+}
+
+/** Hämtar kopplingen mellan kommunresurser och MATCHi-banor. */
+async function loadCourtMappings(): Promise<void> {
+  try {
+    courtMappings.value = await fetchCourtMappings()
+  } catch {
+    courtMappings.value = []
+  }
 }
 
 /**
@@ -308,6 +409,23 @@ onMounted(() => {
                 :title="`Bokad i MATCHi ${matchiRange(appointment)}`"
               >
                 Bokad i MATCHi
+              </span>
+              <button
+                v-if="canBookInMatchi(appointment)"
+                type="button"
+                class="button button--matchi"
+                :disabled="isBooking(appointment)"
+                :title="`Bokar tiden på ${courtFor(appointment)?.matchi_court_name} i MATCHi och kopplar den till kommunens bokning`"
+                @click="bookInMatchi(appointment)"
+              >
+                {{ isBooking(appointment) ? 'Bokar…' : 'Boka i MATCHi' }}
+              </button>
+              <span
+                v-if="bookingError(appointment)"
+                class="booking__error"
+                :title="bookingError(appointment)"
+              >
+                {{ bookingError(appointment) }}
               </span>
               <span v-if="appointment.recurring" class="badge">Återkommande</span>
               <span v-if="!appointment.visible" class="badge badge--muted">Dold</span>
@@ -579,6 +697,36 @@ onMounted(() => {
 .badge--matchi {
   background: #dcfce7;
   color: #15803d;
+}
+
+.button--matchi {
+  background: #fff;
+  border: 1px solid #15803d;
+  color: #15803d;
+  border-radius: 999px;
+  padding: 0.15rem 0.65rem;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.button--matchi:hover:not(:disabled) {
+  background: #dcfce7;
+}
+
+.button--matchi:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.booking__error {
+  color: #b91c1c;
+  font-size: 0.75rem;
+  max-width: 22rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 @media (max-width: 40rem) {

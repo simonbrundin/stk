@@ -383,6 +383,52 @@
                 }
             }
         },
+        "/matchi/bookings/link": {
+            "post": {
+                "description": "Bokar en tid i MATCHi för en bokning i det kommunala bokningssystemet och sparar kopplingen mellan dem. Tiden avrundas till hela och halva timmar.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "matchi"
+                ],
+                "summary": "Boka en tid i MATCHi för en kommunbokning",
+                "parameters": [
+                    {
+                        "description": "Bokning",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/sync.LinkRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/sync.LinkResult"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/sync.ErrorResponse"
+                        }
+                    },
+                    "502": {
+                        "description": "Bad Gateway",
+                        "schema": {
+                            "$ref": "#/definitions/sync.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/matchi/bookings/move": {
             "post": {
                 "description": "Flyttar en befintlig bokning till en ny tid. Tiden avrundas till hela och halva timmar.",
@@ -932,6 +978,65 @@
             "properties": {
                 "error": {
                     "description": "@Description\tFelmeddelande\n@Example\t\tinvalid time range",
+                    "type": "string"
+                }
+            }
+        },
+        "sync.LinkRequest": {
+            "type": "object",
+            "required": [
+                "appointment_id",
+                "end",
+                "start"
+            ],
+            "properties": {
+                "appointment_id": {
+                    "description": "@Description\tId:t för bokningen i det kommunala bokningssystemet\n@Example\t\t337667",
+                    "type": "integer"
+                },
+                "end": {
+                    "description": "@Description\tSluttid för bokningen i det kommunala systemet\n@Example\t\t2026-11-02T19:30:00+01:00",
+                    "type": "string"
+                },
+                "matchi_court_id": {
+                    "description": "@Description\tMATCHis id för banan eller salen. Kan utelämnas om resursen\nbara är kopplad till en enda bana.\n@Example\t\t11344",
+                    "type": "integer"
+                },
+                "start": {
+                    "description": "@Description\tStarttid för bokningen i det kommunala systemet\n@Example\t\t2026-11-02T18:00:00+01:00",
+                    "type": "string"
+                }
+            }
+        },
+        "sync.LinkResult": {
+            "type": "object",
+            "properties": {
+                "appointment_id": {
+                    "description": "@Description\tId:t för bokningen i det kommunala bokningssystemet\n@Example\t\t337667",
+                    "type": "integer"
+                },
+                "court_name": {
+                    "description": "@Description\tMATCHi-banan eller salen som bokades\n@Example\t\t1. Idrottshall",
+                    "type": "string"
+                },
+                "end": {
+                    "description": "@Description\tSluttid i lokal tid (Europe/Stockholm)\n@Example\t\t2026-11-02T19:30:00+01:00",
+                    "type": "string"
+                },
+                "location": {
+                    "description": "@Description\tResursen i det kommunala bokningssystemet\n@Example\t\tBaldershallen 1",
+                    "type": "string"
+                },
+                "matchi_booking_id": {
+                    "description": "@Description\tMATCHis boknings-id\n@Example\t\t112291396",
+                    "type": "string"
+                },
+                "matchi_slot_id": {
+                    "description": "@Description\tMATCHis slot-id för bokningen\n@Example\t\t4a66b2f0-3177-4c9c-a7a5-3a54e44a9737",
+                    "type": "string"
+                },
+                "start": {
+                    "description": "@Description\tStarttid i lokal tid (Europe/Stockholm)\n@Example\t\t2026-11-02T18:00:00+01:00",
                     "type": "string"
                 }
             }

@@ -188,10 +188,8 @@ func main() {
 			actorsmartbookClient.Location(),
 		)
 		r.GET("/matchi/bookings", occupancy.ListBooked(occupancyService))
-	}
 
-	// Synkronisering av kommunens bokningar till MATCHi
-	if bookingStore != nil {
+		// Synkronisering av kommunens bokningar till MATCHi
 		syncer := sync.New(
 			actorsmartbookClient,
 			matchiClient,
@@ -205,6 +203,10 @@ func main() {
 			actorsmartbookClient.Location(),
 		)
 		r.POST("/sync", sync.RunSync(syncer))
+
+		// Bokning av en enskild kommunbokning i MATCHi. Cachen töms så att
+		// den nya bokningen syns direkt i jämförelsen.
+		r.POST("/matchi/bookings/link", sync.LinkBooking(syncer, occupancyService.Invalidate))
 	}
 
 	// Get port from environment or use default

@@ -81,6 +81,13 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+
+        # Jämförelsen mot MATCHi och bokningar i MATCHi kan ta flera minuter,
+        # eftersom MATCHis schemasidor är stora. Nginx bryter annars
+        # anslutningen efter 60 sekunder.
+        proxy_connect_timeout 30s;
+        proxy_send_timeout 180s;
+        proxy_read_timeout 180s;
     }
 
     # SPA routes - don't add trailing slash, serve index.html
