@@ -1,0 +1,82 @@
+name: Deploy lunch page to GitHub Pages
+
+# Sidan /lunch byggs statiskt och publiceras på GitHub Pages.
+# Menyn hämtas från matochmat.se vid varje byggning, så schemat kör byggningen
+# varje morgon för att sidan ska vara färsk.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/nuxt/**'
+      - '.github/workflows/pages.yaml'
+  schedule:
+    # 06:00 svensk tid (vintertid)
+    - cron: '0 5 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Bygg statisk lunchsida
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Installera beroenden
+        working-directory: src/nuxt
+        run: bun install --frozen-lockfile
+
+      - name: Hämta lunchmenyn från matochmat.se
+        working-directory: src/nuxt
+        run: bun run fetch:lunch
+
+      - name: Bygg statisk sajt
+        working-directory: src/nuxt
+        env:
+          NUXT_PAGES_BUILD: 'true'
+          NUXT_APP_BASE_URL: '/${{ github.event.repository.name }}/'
+        run: bun run generate
+
+      # GitHub Pages annonserar annars en Jekyll-build som tar bort _nuxt/.
+      - name: Lägg till .nojekyll
+        run: touch src/nuxt/.output/public/.nojekyll
+
+      - name: Konfigurera GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Ladda upp artefakt
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: src/nuxt/.output/public
+
+  deploy:
+    name: Publicera
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy till GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
