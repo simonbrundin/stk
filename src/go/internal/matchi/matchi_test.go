@@ -1,7 +1,9 @@
 package matchi
 
 import (
+	"context"
 	"net/url"
+	"strings"
 	"testing"
 	"time"
 )
@@ -245,5 +247,18 @@ func TestParseFormFields(t *testing.T) {
 
 	if _, ok := fields["showComment"]; ok {
 		t.Error("kryssrutor ska inte tas med")
+	}
+}
+
+func TestLoginRejectsEncryptedSecrets(t *testing.T) {
+	client := NewClient("", "user@example.com", "ENC[AES256_GCM,data:abc]", time.Second, nil)
+
+	err := client.Login(context.Background())
+	if err == nil {
+		t.Fatal("Login med krypterat lösenord ska misslyckas")
+	}
+
+	if !strings.Contains(err.Error(), "krypterat") {
+		t.Errorf("felmeddelandet ska nämna att lösenordet är krypterat, fick %q", err)
 	}
 }

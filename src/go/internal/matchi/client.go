@@ -63,6 +63,14 @@ func NewClient(baseURL, username, password string, timeout time.Duration, locati
 	}
 }
 
+// isEncryptedSecret identifierar ett värde som inte dekrypterats.
+//
+// SOPS krypterade värden börjar med "ENC[" - om ett sådant värde skickas
+// som lösenord till Keycloak räknas det som ett ogiltigt inloggningsförsök.
+func isEncryptedSecret(value string) bool {
+	return strings.HasPrefix(strings.TrimSpace(value), "ENC[")
+}
+
 // Location returnerar tidszonen klienten tolkar tiderna i.
 func (c *Client) Location() *time.Location {
 	return c.location
@@ -83,6 +91,13 @@ func (c *Client) Login(ctx context.Context) error {
 func (c *Client) login(ctx context.Context) error {
 	if c.username == "" || c.password == "" {
 		return errors.New("matchi: användarnamn och lösenord krävs")
+	}
+
+	// Krypterade hemligheter får aldrig skickas som lösenord. Ett felaktigt
+	// dekrypterat secret skulle annars ge Keycloak ogiltiga inloggningsförsök
+	// och riskera att kontot låses av brute force-skyddet.
+	if isEncryptedSecret(c.password) {
+		return errors.New("matchi: lösenordet ser ut att vara krypterat - kontrollera att secreten är dekrypterad")
 	}
 
 	// Steg 1: Starta inloggningen. Kedjan av omdirigeringar slutar i
