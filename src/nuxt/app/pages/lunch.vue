@@ -1,142 +1,168 @@
 <template>
-  <div class="lunch">
-    <header class="lunch__header">
-      <h1 class="lunch__title">Lunchmeny</h1>
-      <p class="lunch__week">V{{ week }}</p>
-    </header>
+  <div class="lunch" :style="{ zoom: scale }">
+    <section v-for="(screen, index) in screens" :key="index" class="screen">
+      <header class="screen__header">
+        <h1 class="screen__title">Lunchmeny</h1>
+        <p class="screen__week">V{{ week }}</p>
+      </header>
 
-    <main class="lunch__body">
-      <section v-for="day in menu.days" :key="day.date" class="day">
-        <h2 class="day__title">{{ formatMenuDay(day.date, day.weekday) }}</h2>
+      <div class="screen__days">
+        <section v-for="day in screen" :key="day.date" class="day">
+          <h2 class="day__title">{{ formatMenuDay(day.date, day.weekday) }}</h2>
 
-        <p v-if="!day.isPublished" class="day__unpublished">
-          Menyn för dagen är inte publicerad ännu.
-        </p>
+          <p v-if="!day.isPublished" class="day__unpublished">
+            Menyn för dagen är inte publicerad ännu.
+          </p>
 
-        <ul v-else class="day__dishes">
-          <li v-for="(dish, index) in day.dishes" :key="index" class="dish">
-            <p class="dish__name">
-              <span>{{ dish.name }}</span>
-              <span v-if="dish.price" class="dish__leader" aria-hidden="true" />
-            </p>
-            <p v-if="dish.description" class="dish__description">{{ dish.description }}</p>
-          </li>
-        </ul>
-      </section>
-    </main>
-
-    <footer class="lunch__footer">
-      <div class="footer__mark" aria-hidden="true">
-        <span>H</span>
+          <ul v-else class="day__dishes">
+            <li v-for="(dish, dishIndex) in day.dishes" :key="dishIndex" class="dish">
+              <p class="dish__name">
+                <span>{{ dish.name }}</span>
+                <span v-if="dish.price" class="dish__leader" aria-hidden="true" />
+              </p>
+              <p v-if="dish.description" class="dish__description">{{ dish.description }}</p>
+              <p v-if="dish.tags.length" class="dish__tags">{{ dish.tags.join(', ') }}</p>
+            </li>
+          </ul>
+        </section>
       </div>
 
-      <div class="footer__wordmark">
-        <span class="wordmark__rule wordmark__rule--top" aria-hidden="true" />
-        <p class="wordmark__name">{{ wordmark.name }}</p>
-        <p class="wordmark__sub">{{ wordmark.sub }}</p>
-        <span class="wordmark__rule wordmark__rule--bottom" aria-hidden="true" />
-      </div>
-    </footer>
+      <img
+        class="screen__logo"
+        :src="logoSrc"
+        :alt="menu.restaurant.name"
+        width="398"
+        height="187"
+      />
+    </section>
   </div>
 </template>
 
 <script setup lang="ts">
 const menu = useLunchMenu()
+const runtimeConfig = useRuntimeConfig()
 
 /** ISO-veckan som menyn tillhör, t.ex. 45. */
 const week = computed(() => isoWeekNumber(menu.days[0]?.date ?? ''))
 
-/** Namnet splittat i en stor logotyptext och en undertext. */
-const wordmark = computed(() => {
-  const parts = menu.restaurant.name.split(' ')
+/** Logotypen ligger i public/ och måste följa baseURL (t.ex. /stk/). */
+const logoSrc = computed(() => `${runtimeConfig.app.baseURL}images/hovet-logo.png`)
 
-  return {
-    name: parts[0]?.toUpperCase() ?? '',
-    sub: parts.slice(1).join(' ').toUpperCase(),
-  }
+/** Menyn delas upp på skärmar som i mockupen. */
+const screens = computed(() => groupDaysIntoScreens(menu.days))
+
+/**
+ * Skärmen är 1080x1920 px. På smalare skärmar skalas hela skärmen ner,
+ * så att layouten alltid är den som mätts mot mockupen.
+ */
+const scale = ref(1)
+
+function updateScale(): void {
+  scale.value = Math.min(1, window.innerWidth / 1080)
+}
+
+onMounted(() => {
+  updateScale()
+  window.addEventListener('resize', updateScale)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', updateScale)
 })
 </script>
 
 <style scoped>
+/* Skärmen är en fast 1080x1920-kanvas, så webbläsarens standardmarginal
+   på body måste nollställas. */
+:global(html),
+:global(body) {
+  margin: 0;
+  padding: 0;
+  background: #e6e6e6;
+}
+
 .lunch {
   --lunch-black: #000;
   --lunch-grey: #767477;
   --lunch-muted: #a3a3a3;
+  --lunch-tag: #8c8c8c;
   /* Textens vänsterkant ligger 2 px innanför kolumnens kant (sidbäring). */
   --lunch-text-inset: 2px;
 
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
   min-height: 100vh;
-  padding: 0 clamp(1.25rem, 5vw, 2rem);
-  background: #fff;
+  background: #e6e6e6;
   color: var(--lunch-black);
   font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
   font-feature-settings: 'kern';
   -webkit-font-smoothing: antialiased;
 }
 
-@media (min-width: 900px) {
-  .lunch {
-    padding: 0;
-  }
+/* --------------------------------------------------------------- Skärm */
+
+.screen {
+  position: relative;
+  width: 1080px;
+  min-height: 1920px;
+  background: #fff;
+  overflow: hidden;
 }
 
-/* --------------------------------------------------------------- Toppbar */
-
-.lunch__header {
+.screen__header {
   display: flex;
   justify-content: center;
   align-items: baseline;
-  gap: clamp(0.75rem, 2vw, 1.75rem);
-  padding: clamp(1.75rem, 6.6vw, 5rem) 0 clamp(1.75rem, 7.5vw, 5.3rem);
+  gap: 21px;
+  padding-top: 80px;
 }
 
-.lunch__title {
+.screen__title {
   margin: 0;
   color: var(--lunch-grey);
   font-family: 'Archivo', 'Inter', sans-serif;
-  font-size: clamp(2.25rem, 7.9vw, 5.3rem);
+  font-size: 85px;
   font-variation-settings: 'wdth' 77, 'wght' 700;
   letter-spacing: -0.02em;
   line-height: 1;
 }
 
-.lunch__week {
+.screen__week {
   margin: 0;
   color: var(--lunch-grey);
   font-family: 'Archivo', 'Inter', sans-serif;
-  font-size: clamp(2rem, 7.9vw, 5.3rem);
+  font-size: 85px;
   font-variation-settings: 'wdth' 73, 'wght' 800;
   letter-spacing: -0.01em;
   line-height: 1;
 }
 
-/* -------------------------------------------------------------- Innehåll */
+/* ------------------------------------------------------------- Innehåll */
 
-.lunch__body {
-  max-width: 740px;
-}
-
-@media (min-width: 900px) {
-  .lunch__body {
-    margin-left: 16.3%;
-  }
+.screen__days {
+  position: absolute;
+  top: 244px;
+  left: 181px;
+  width: 740px;
 }
 
 .day {
-  margin-bottom: clamp(1rem, 1.85vw, 1.5rem);
+  margin-bottom: 19px;
 }
 
 .day__title {
-  margin: 0 0 clamp(0.55rem, 1vw, 0.8rem);
+  margin: 0 0 11px;
   font-family: 'Archivo', 'Inter', sans-serif;
-  font-size: clamp(1.05rem, 2.6vw, 1.75rem);
+  font-size: 28px;
   font-variation-settings: 'wdth' 78, 'wght' 800;
   letter-spacing: -0.01em;
   line-height: 1.1;
 }
 
 /* Tunn linje under dagrubriken, som i mockupen. Linjen börjar vid
-   textens vänsterkant (sidbäringen på 7 px) och slutar vid kolumnens kant. */
+   textens vänsterkant (sidbäringen på 2 px) och slutar vid kolumnens kant. */
 .day__title::after {
   content: '';
   display: block;
@@ -150,7 +176,7 @@ const wordmark = computed(() => {
 .day__unpublished {
   margin: 0;
   color: var(--lunch-muted);
-  font-size: clamp(0.85rem, 1.5vw, 1rem);
+  font-size: 18px;
   font-style: italic;
 }
 
@@ -161,7 +187,7 @@ const wordmark = computed(() => {
 }
 
 .dish {
-  margin-bottom: clamp(0.8rem, 1.6vw, 1.3rem);
+  margin-bottom: 17px;
 }
 
 /* Sista rätten i en dag ska inte trycka dagens avslut neråt. */
@@ -175,7 +201,7 @@ const wordmark = computed(() => {
   gap: 0.4em;
   margin: 0;
   font-family: 'Archivo', 'Inter', sans-serif;
-  font-size: clamp(0.9rem, 1.72vw, 1.2rem);
+  font-size: 19px;
   font-variation-settings: 'wdth' 100, 'wght' 700;
   line-height: 1.2;
 }
@@ -189,79 +215,32 @@ const wordmark = computed(() => {
 }
 
 .dish__description {
-  margin: 0.15rem 0 0;
+  margin: 2px 0 0;
   color: var(--lunch-grey);
-  font-size: clamp(0.8rem, 1.67vw, 1.15rem);
+  font-size: 18px;
   font-weight: 400;
   line-height: 1.35;
 }
 
-/* ---------------------------------------------------------------- Footer */
-
-.lunch__footer {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 2rem;
-  margin-top: clamp(3rem, 6vw, 5rem);
-  padding-bottom: clamp(2rem, 5vw, 4rem);
-}
-
-@media (min-width: 900px) {
-  .lunch__footer {
-    margin-left: 15%;
-    margin-right: 10%;
-  }
-}
-
-.footer__mark {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: clamp(5rem, 14.3vw, 9.6rem);
-  height: clamp(5rem, 14.3vw, 9.6rem);
-  border: clamp(3px, 0.6vw, 6px) solid var(--lunch-black);
-  border-radius: 50%;
-  color: var(--lunch-black);
-  font-family: 'Archivo', 'Inter', sans-serif;
-  font-size: clamp(2.5rem, 6.5vw, 4.5rem);
-  font-variation-settings: 'wdth' 80, 'wght' 800;
-  line-height: 1;
-}
-
-.footer__wordmark {
-  text-align: left;
-}
-
-.wordmark__rule {
-  display: block;
-  width: 180px;
-  height: 2px;
-  background: var(--lunch-black);
-}
-
-.wordmark__rule--top {
-  margin: 0 0 10px auto;
-}
-
-.wordmark__rule--bottom {
-  margin: 16px 0 0;
-}
-
-.wordmark__name {
-  margin: 0;
-  font-family: 'Archivo', 'Inter', sans-serif;
-  font-size: clamp(2.5rem, 12.5vw, 8.5rem);
-  font-variation-settings: 'wdth' 72, 'wght' 800;
-  letter-spacing: 0.06em;
-  line-height: 1;
-}
-
-.wordmark__sub {
-  margin: 0.5rem 0 0;
-  font-size: clamp(0.6rem, 2.3vw, 1.5rem);
-  font-weight: 600;
-  letter-spacing: 0.28em;
+/* Taggar (t.ex. "Vegetarisk") visas som en liten indrad rad under rätten. */
+.dish__tags {
+  margin: 5px 0 0 18px;
+  color: var(--lunch-tag);
+  font-size: 13px;
+  letter-spacing: 0.01em;
   line-height: 1.2;
+}
+
+/* --------------------------------------------------------------- Logotyp */
+
+/* Logotypen är en beskärning av mockupens sidfot (x 574-972, y 1681-1868)
+   och placeras därför på exakt samma position. */
+.screen__logo {
+  position: absolute;
+  right: 108px;
+  bottom: 52px;
+  width: 398px;
+  height: 187px;
+  mix-blend-mode: multiply;
 }
 </style>

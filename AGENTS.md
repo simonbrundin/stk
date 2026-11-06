@@ -867,7 +867,7 @@ cd src/nuxt && bun run fetch:lunch
 
 ### Utseende
 
-Sidan är designad efter en skärmmockup (1080x1920) av Hovets lunchmeny.
+Sidan är designad efter Hovets skärmmockup (1080x1920) av lunchmenyn.
 Geometrin är uppmätt med OCR och pixelanalys, och `scripts/compare-mockup.sh`
 renderar den byggda sidan i headless Chromium och jämför positioner och
 bredder mot mockupen:
@@ -875,6 +875,33 @@ bredder mot mockupen:
 ```bash
 cd src/nuxt && ./scripts/compare-mockup.sh
 ```
+
+#### Skärmar i formatet 1080x1920
+
+Sidan är en kanvas av **exakt 1080x1920 px per skärm**. Veckans dagar
+delas upp på sådana skärmar (`groupDaysIntoScreens` i `useLunchMenu.ts`):
+max tre dagar per skärm - fler ryms inte på höjden. Dagarna sprids jämnt
+över skärmarna, så en vecka med sju dagar blir tre skärmar med 3, 2 och 2
+dagar.
+
+Varje skärm har samma uppbyggnad som mockupen:
+
+- rubrik "Lunchmeny" + veckonummer ("V45") högst upp
+- dagar i en 740 px bred kolumn (vänsterkant x=183)
+- Hovets logotyp nederst till höger
+
+På smalare skärmar skalas hela kanvasen ner med `zoom`
+(`min(1, viewport / 1080)`) så att layouten alltid är den uppmätta.
+
+#### Logotyp
+
+`src/nuxt/public/images/hovet-logo.png` är Hovets logotyp, exporterad ur
+mockupens sidfot. Bilden placeras på exakt samma position som i mockupen
+(x 574-972, y 1681-1868) och `mix-blend-mode: multiply` tar bort den
+vita bakgrunden. Sökvägen byggs av `runtimeConfig.app.baseURL` så att den
+fungerar under GitHub Pages `baseURL`.
+
+#### Typografi och mått
 
 Referensmått (mockupen):
 
@@ -888,11 +915,13 @@ Referensmått (mockupen):
 | Logotyptext "HOVET"| 574   | 1694 | 398   | 96   |
 
 Strukturen i mockupen är: dagrubrik → tunn linje (2 px, grå `#767477`)
-under rubriken → rätter → 26 px till nästa dagrubrik. Textkolumnen är 740 px
+under rubriken → rätter → 19 px till nästa dagrubrik. Textkolumnen är 740 px
 bred och börjar vid x=183. Rätter som har ett pris får en prickledning från
 namnet till kolumnens högerkant (i mockupen visas bara prickarna - själva
-priset saknas i bilden). I sidfoten finns två tunna svarta linjer (180 px):
-en ovanför logotyptexten (högerjusterad) och en under undertxten (vänsterjusterad).
+priset saknas i bilden). Rätter med taggar (t.ex. "Vegetarisk") får en liten
+ljusgrå rad indrad 18 px under beskrivningen. I sidfoten finns två tunna
+svarta linjer (180 px): en ovanför logotyptexten (högerjusterad) och en
+under undertxten (vänsterjusterad).
 
 Sidan använder två självhostade fonter från `src/nuxt/public/fonts/`:
 

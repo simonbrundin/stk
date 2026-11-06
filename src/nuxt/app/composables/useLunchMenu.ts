@@ -79,6 +79,40 @@ export function isoWeekNumber(date: string): number {
 }
 
 /**
+ * Antal dagar som ryms på en skärm av storleken 1080x1920 px.
+ *
+ * Mockupen visar tre dagar på den första skärmen. Fler dagar pressar
+ * innehållet för nära logotypen.
+ */
+export const DAYS_PER_SCREEN = 3
+
+/**
+ * Delar upp veckans dagar på skärmar.
+ *
+ * Dagarna sprids jämnt över skärmarna, så att en vecka med sju dagar
+ * blir tre skärmar med tre, två och två dagar.
+ */
+export function groupDaysIntoScreens(days: LunchDay[]): LunchDay[][] {
+  if (days.length === 0) {
+    return []
+  }
+
+  const screenCount = Math.ceil(days.length / DAYS_PER_SCREEN)
+  const perScreen = Math.floor(days.length / screenCount)
+  const remainder = days.length % screenCount
+  const screens: LunchDay[][] = []
+
+  let index = 0
+  for (let screen = 0; screen < screenCount; screen += 1) {
+    const size = perScreen + (screen < remainder ? 1 : 0)
+    screens.push(days.slice(index, index + size))
+    index += size
+  }
+
+  return screens
+}
+
+/**
  * Formaterar tidpunkten menyn hämtades som "6 november 2026 kl. 13:45".
  */
 export function formatGeneratedAt(value: string): string {
