@@ -618,12 +618,20 @@ Smartbook) till MATCHi, där klubbens medlemmar bokar banor.
 | Endpoint                    | Beskrivning                                          |
 | --------------------------- | ---------------------------------------------------- |
 | `GET /matchi/slots`         | Lediga och bokade slotter per bana och dag           |
+| `GET /matchi/bookings`      | Skrivläsande jämförelse: kommunbokningar som även är bokade i MATCHi |
 | `POST /matchi/bookings`     | Boka en bana                                         |
 | `POST /matchi/bookings/move`| Flytta en bokning                                    |
 | `POST /matchi/bookings/cancel` | Avboka en bokning                                 |
 | `GET /bookings`             | Lokal spegel av synkade bokningar                    |
 | `GET/POST /court-mappings`  | Koppling kommunresurs ↔ MATCHi-bana                   |
 | `POST /sync`                | Kör en synkronisering manuellt                       |
+
+### Anläggningen i MATCHi
+
+MATCHi-kontot som används är **Baldershallen** (`facility id 531`), så
+schemat som läses via `/facility/booking/index` gäller den anläggningen.
+Anläggningen behöver alltså inte väljas i klienten - sessionen är redan
+kopplad till den.
 
 ### Inloggning
 
@@ -639,6 +647,30 @@ klass kapar värdet och gör att inloggningen intermittent misslyckas.
 
 Starttid avrundas **nedåt** till närmaste halvtimme och sluttid **uppåt**, så
 att en bokning aldrig blir kortare än den kommunala bokningen.
+
+### Jämförelse mot MATCHi (skrivläsande)
+
+`GET /matchi/bookings?from=&to=` listar de bokningar i det kommunala
+systemet som **också** är bokade i MATCHi. Endpointen är strikt
+skrivläsande - den bokar, flyttar och avbokar aldrig något i MATCHi.
+
+På `/bookings` markeras sådana tider grönt, med en badge "Bokad i MATCHi".
+
+Så här fungerar jämförelsen:
+
+1. Kopplingen mellan kommunresurs och MATCHi-bana hämtas ur
+   `court_mappings` (t.ex. "Baldershallen 1" ↔ "1. Idrottshall").
+2. Endast dagar som har bokningar läses från MATCHi - en period på 31 dagar
+   blir alltså betydligt färre anrop.
+3. En bokning räknas som bokad i MATCHi om den överlappar en bokad slot på
+   den kopplade banan.
+
+> **Prestanda:** varje schema är en stor HTML-sida (~5 s per dag). Dagarna
+> hämtas parallellt (4 samtidigt) och cachas i 90 sekunder, så flera
+> besökare inte belastar MATCHi onödigt.
+
+> **Ej mappade resurser:** resurser utan koppling i `court_mappings` (t.ex.
+> "Baldershallen Coworking-rum") markeras aldrig som bokade i MATCHi.
 
 ### Synkronisering
 

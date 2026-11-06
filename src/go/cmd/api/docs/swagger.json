@@ -240,6 +240,55 @@
             }
         },
         "/matchi/bookings": {
+            "get": {
+                "description": "Returnerar de bokningar i det kommunala bokningssystemet som även är bokade i MATCHi. Anropet är skrivläsande - det bokar aldrig något i MATCHi.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "matchi"
+                ],
+                "summary": "Markera tider som är bokade i MATCHi",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "default": "now",
+                        "description": "Periodens början (RFC3339, YYYY-MM-DD eller 'now')",
+                        "name": "from",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "default": "now+7d",
+                        "description": "Periodens slut (RFC3339, YYYY-MM-DD eller 'now+7d')",
+                        "name": "to",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/occupancy.Result"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/actorsmartbook.ErrorResponse"
+                        }
+                    },
+                    "502": {
+                        "description": "Bad Gateway",
+                        "schema": {
+                            "$ref": "#/definitions/actorsmartbook.ErrorResponse"
+                        }
+                    }
+                }
+            },
             "post": {
                 "description": "Bookar en tid på en bana eller sal. Starttid avrundas nedåt till närmaste halvtimme och sluttid avrundas uppåt till närmaste halvtimme.",
                 "consumes": [
@@ -736,6 +785,78 @@
                 },
                 "title": {
                     "description": "@Description\tÖvrig information om slotten, t.ex. kundnamn\n@Example\t\tSTK Verksamhet",
+                    "type": "string"
+                }
+            }
+        },
+        "occupancy.Booking": {
+            "type": "object",
+            "properties": {
+                "appointment_id": {
+                    "description": "@Description\tId:t för bokningen i det kommunala bokningssystemet\n@Example\t\t337667",
+                    "type": "integer"
+                },
+                "court_name": {
+                    "description": "@Description\tMATCHi-banan eller salen som bokningen gäller\n@Example\t\t1. Idrottshall",
+                    "type": "string"
+                },
+                "end": {
+                    "description": "@Description\tSluttid i lokal tid (Europe/Stockholm)\n@Example\t\t2026-11-02T19:30:00+01:00",
+                    "type": "string"
+                },
+                "location": {
+                    "description": "@Description\tResursen i det kommunala bokningssystemet\n@Example\t\tBaldershallen 1",
+                    "type": "string"
+                },
+                "matchi_booking_id": {
+                    "description": "@Description\tMATCHis boknings-id\n@Example\t\t112291396",
+                    "type": "string"
+                },
+                "matchi_end": {
+                    "description": "@Description\tSluttid för bokningen i MATCHi\n@Example\t\t2026-11-02T19:30:00+01:00",
+                    "type": "string"
+                },
+                "matchi_start": {
+                    "description": "@Description\tStarttid för bokningen i MATCHi\n@Example\t\t2026-11-02T18:00:00+01:00",
+                    "type": "string"
+                },
+                "matchi_title": {
+                    "description": "@Description\tInformation om bokningen i MATCHi, t.ex. kundnamn\n@Example\t\tSTK Verksamhet",
+                    "type": "string"
+                },
+                "start": {
+                    "description": "@Description\tStarttid i lokal tid (Europe/Stockholm)\n@Example\t\t2026-11-02T18:00:00+01:00",
+                    "type": "string"
+                }
+            }
+        },
+        "occupancy.Result": {
+            "type": "object",
+            "properties": {
+                "booked": {
+                    "description": "@Description\tBokningarna som även är bokade i MATCHi",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/occupancy.Booking"
+                    }
+                },
+                "count": {
+                    "description": "@Description\tAntal bokningar som även är bokade i MATCHi\n@Example\t\t3",
+                    "type": "integer"
+                },
+                "errors": {
+                    "description": "@Description\tMeddelanden om dagar som inte kunde läsas från MATCHi\n@Example\t\t[\"2026-11-03: kunde inte läsa schemat\"]",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "from": {
+                    "description": "@Description\tPeriodens början i lokal tid\n@Example\t\t2026-11-02T00:00:00+01:00",
+                    "type": "string"
+                },
+                "to": {
+                    "description": "@Description\tPeriodens slut i lokal tid\n@Example\t\t2026-11-09T00:00:00+01:00",
                     "type": "string"
                 }
             }

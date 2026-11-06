@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Appointment } from '~/composables/useAppointments'
+import type { MatchiBooking } from '~/composables/useMatchiBookings'
 
 const today = new Date().toISOString().slice(0, 10)
 
@@ -11,6 +12,11 @@ const loading = ref(false)
 const error = ref<string | null>(null)
 const loaded = ref(false)
 const search = ref('')
+
+/** Bokningar som även är bokade i MATCHi, grupperade per kommunapptid. */
+const matchiBookings = ref<Map<number, MatchiBooking[]>>(new Map())
+const matchiLoading = ref(false)
+const matchiError = ref<string | null>(null)
 
 const timeZone = 'Europe/Stockholm'
 
@@ -93,6 +99,28 @@ const totalMinutes = computed(() =>
   filteredAppointments.value.reduce((sum, appointment) => sum + appointment.duration_minutes, 0),
 )
 
+/** Antal bokningar i urvalet som även är bokade i MATCHi. */
+const matchiBookedCount = computed(
+  () => filteredAppointments.value.filter((appointment) => matchiBookings.value.has(appointment.id)).length,
+)
+
+/** MATCHi-bokningarna som hör till en bokning i det kommunala systemet. */
+function matchiBookingsFor(appointment: Appointment): MatchiBooking[] {
+  return matchiBookings.value.get(appointment.id) ?? []
+}
+
+/** Om en bokning i det kommunala systemet även är bokad i MATCHi. */
+function isBookedInMatchi(appointment: Appointment): boolean {
+  return matchiBookings.value.has(appointment.id)
+}
+
+/** Tidsintervallet i MATCHi som hör till en bokning. */
+function matchiRange(appointment: Appointment): string {
+  return matchiBookingsFor(appointment)
+    .map((booking) => `${formatTime(booking.matchi_start)}–${formatTime(booking.matchi_end)}`)
+    .join(', ')
+}
+
 function selectPreset(days: number): void {
   from.value = today
   to.value = addDays(today, days - 1)
@@ -119,6 +147,51 @@ async function load(): Promise<void> {
   } finally {
     loading.value = false
   }
+
+  await loadMatchi()
+}
+
+/**
+ * Hämtar de bokningar som även är bokade i MATCHi.
+ *
+ * Anropet är skrivläsende - ingenting bokas i MATCHi. Ett fel här ska inte
+ * stoppa listan från det kommunala systemet, så felet visas bara som en
+ * notis.
+ */
+async function loadMatchi(): Promise<void> {
+  matchiLoading.value = true
+  matchiError.value = null
+
+  if (appointments.value.length === 0) {
+    matchiBookings.value = new Map()
+    matchiLoading.value = false
+    return
+  }
+
+  try {
+    const response = await fetchMatchiBookings(from.value, to.value)
+    const grouped = new Map<number, MatchiBooking[]>()
+
+    for (const booking of response.booked) {
+      const existing = grouped.get(booking.appointment_id)
+      if (existing) {
+        existing.push(booking)
+      } else {
+        grouped.set(booking.appointment_id, [booking])
+      }
+    }
+
+    matchiBookings.value = grouped
+
+    if (response.errors && response.errors.length > 0) {
+      matchiError.value = `Vissa dagar kunde inte läsas från MATCHi: ${response.errors.join('; ')}`
+    }
+  } catch {
+    matchiBookings.value = new Map()
+    matchiError.value = 'Kunde inte hämta bokningarna från MATCHi.'
+  } finally {
+    matchiLoading.value = false
+  }
 }
 
 onMounted(() => {
@@ -132,6 +205,9 @@ onMounted(() => {
       <h1>Bokningar</h1>
       <p class="page__lead">
         Välj en period och hämta alla bokningar från kommunens bokningssystem.
+      </p>
+      <p class="page__hint">
+        Tider som också är bokade i MATCHi (Baldershallen) markeras grönt.
       </p>
     </header>
 
@@ -171,6 +247,8 @@ onMounted(() => {
           Försök igen
         </button>
       </p>
+      <p v-else-if="matchiError" class="notice notice--warning">{{ matchiError }}</p>
+      <p v-else-if="matchiLoading" class="notice">Jämför bokningarna med MATCHi…</p>
     </section>
 
     <section v-if="loaded || appointments.length > 0" class="panel">
@@ -182,6 +260,10 @@ onMounted(() => {
         <div class="summary__item">
           <span class="summary__value">{{ Math.round(totalMinutes / 60) }}</span>
           <span class="summary__label">bokade timmar</span>
+        </div>
+        <div class="summary__item">
+          <span class="summary__value">{{ matchiBookedCount }}</span>
+          <span class="summary__label">bokade i MATCHi</span>
         </div>
         <div class="summary__item summary__item--grow">
           <input
@@ -200,13 +282,25 @@ onMounted(() => {
       <article v-for="group in groupedAppointments" :key="group.day" class="day">
         <h2 class="day__title">{{ group.label }}</h2>
         <ul class="day__list">
-          <li v-for="appointment in group.items" :key="appointment.id" class="booking">
+          <li
+            v-for="appointment in group.items"
+            :key="appointment.id"
+            class="booking"
+            :class="{ 'booking--booked': isBookedInMatchi(appointment) }"
+          >
             <span class="booking__time">
               {{ formatTime(appointment.start) }}–{{ formatTime(appointment.end) }}
             </span>
             <span class="booking__place">{{ appointment.location }}</span>
             <span class="booking__who">{{ appointment.description || '—' }}</span>
             <span class="booking__meta">
+              <span
+                v-if="isBookedInMatchi(appointment)"
+                class="badge badge--matchi"
+                :title="`Bokad i MATCHi ${matchiRange(appointment)}`"
+              >
+                Bokad i MATCHi
+              </span>
               <span v-if="appointment.recurring" class="badge">Återkommande</span>
               <span v-if="!appointment.visible" class="badge badge--muted">Dold</span>
               <span v-if="appointment.css_class" class="badge badge--muted">{{ appointment.css_class }}</span>
@@ -233,8 +327,14 @@ onMounted(() => {
 }
 
 .page__lead {
+  margin: 0 0 0.25rem;
+  color: var(--color-muted, #64748b);
+}
+
+.page__hint {
   margin: 0 0 1.5rem;
   color: var(--color-muted, #64748b);
+  font-size: 0.875rem;
 }
 
 .panel {
@@ -348,6 +448,11 @@ onMounted(() => {
   color: #b91c1c;
 }
 
+.notice--warning {
+  background: #fffbeb;
+  color: #b45309;
+}
+
 .notice__retry {
   margin-left: 0.75rem;
   padding: 0.2rem 0.6rem;
@@ -427,6 +532,12 @@ onMounted(() => {
   font-weight: 600;
 }
 
+/* Tider som också är bokade i MATCHi. */
+.booking--booked {
+  border-color: #86efac;
+  background: #f0fdf4;
+}
+
 .booking__place {
   font-weight: 500;
 }
@@ -455,6 +566,11 @@ onMounted(() => {
 .badge--muted {
   background: #f1f5f9;
   color: #64748b;
+}
+
+.badge--matchi {
+  background: #dcfce7;
+  color: #15803d;
 }
 
 @media (max-width: 40rem) {
