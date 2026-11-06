@@ -1,17 +1,27 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
+	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
+
+	// Tidszonsdatabasen bäddas in i binären så att Europe/Stockholm alltid
+	// finns, oberoende av vad basimageen innehåller.
+	_ "time/tzdata"
 
 	openapiui "github.com/PeterTakahashi/gin-openapi/openapiui"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 
 	"github.com/simon/repo-template/internal/actorsmartbook"
+	"github.com/simon/repo-template/internal/matchi"
+	"github.com/simon/repo-template/internal/store"
+	"github.com/simon/repo-template/internal/sync"
 )
 
 // @title			Repo Template API
@@ -29,6 +39,22 @@ func getDocsPath() string {
 // readSwaggerSpec reads and returns the swagger spec
 func readSwaggerSpec() ([]byte, error) {
 	return os.ReadFile(getDocsPath())
+}
+
+// envInt läser ett heltal ur en miljövariabel, med fallback.
+func envInt(name string, fallback int) int {
+	value := strings.TrimSpace(os.Getenv(name))
+	if value == "" {
+		return fallback
+	}
+
+	parsed, err := strconv.Atoi(value)
+	if err != nil {
+		log.Printf("miljövariabelen %s har ogiltigt värde %q, använder %d", name, value, fallback)
+		return fallback
+	}
+
+	return parsed
 }
 
 // withHost modifies the swagger spec to use the correct host
@@ -116,6 +142,59 @@ func main() {
 		nil,
 	)
 	r.GET("/actorsmartbook/appointments", actorsmartbook.ListAppointments(actorsmartbookClient))
+
+	// MATCHi - anläggningens bokningssystem
+	matchiClient := matchi.NewClient(
+		os.Getenv("MATCHI_BASE_URL"),
+		os.Getenv("MATCHI_USERNAME"),
+		os.Getenv("MATCHI_PASSWORD"),
+		matchi.DefaultTimeout,
+		nil,
+	)
+	r.GET("/matchi/slots", matchi.ListSlots(matchiClient))
+	r.POST("/matchi/bookings", matchi.CreateBooking(matchiClient))
+	r.POST("/matchi/bookings/move", matchi.MoveBooking(matchiClient))
+	r.POST("/matchi/bookings/cancel", matchi.CancelBooking(matchiClient))
+
+	// Databas - Neon/PostgreSQL
+	var bookingStore *store.Store
+	if dsn := os.Getenv("DATABASE_URL"); dsn != "" {
+		db, err := store.Open(dsn)
+		if err != nil {
+			log.Fatalf("kunde inte ansluta till databasen: %v", err)
+		}
+		defer db.Close()
+
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		if err := db.EnsureSchema(ctx); err != nil {
+			cancel()
+			log.Fatalf("kunde inte skapa databasschemat: %v", err)
+		}
+		cancel()
+
+		bookingStore = db
+
+		r.GET("/bookings", sync.ListBookings(db))
+		r.GET("/court-mappings", sync.ListCourtMappings(db))
+		r.POST("/court-mappings", sync.UpsertCourtMapping(db))
+	}
+
+	// Synkronisering av kommunens bokningar till MATCHi
+	if bookingStore != nil {
+		syncer := sync.New(
+			actorsmartbookClient,
+			matchiClient,
+			bookingStore,
+			sync.Config{
+				Days:               envInt("SYNC_DAYS", sync.DefaultDays),
+				CustomerID:         int64(envInt("MATCHI_CUSTOMER_ID", 0)),
+				OrganizationFilter: os.Getenv("SYNC_ORGANIZATION_FILTER"),
+				RemoveOrphans:      os.Getenv("SYNC_REMOVE_ORPHANS") == "true",
+			},
+			actorsmartbookClient.Location(),
+		)
+		r.POST("/sync", sync.RunSync(syncer))
+	}
 
 	// Get port from environment or use default
 	port := os.Getenv("PORT")

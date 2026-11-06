@@ -54,7 +54,8 @@ ARG TARGETARCH
 # Copy source and build
 COPY . .
 RUN --mount=type=cache,target=/root/.cache/go-build \
-    go build -ldflags="-s -w" -trimpath -o /api ./cmd/api
+    go build -ldflags="-s -w" -trimpath -o /api ./cmd/api && \
+    go build -ldflags="-s -w" -trimpath -o /sync ./cmd/sync
 
 # =============================================================================
 # Stage 2: Runtime - distroless (minimal attack surface)
@@ -67,6 +68,7 @@ LABEL org.opencontainers.image.title="Go API" \
 
 # Copy binary and OpenAPI docs
 COPY --from=builder /api /api
+COPY --from=builder /sync /sync
 COPY --from=swag /build/cmd/api/docs /app/docs
 
 ENV DOCS_PATH=/app/docs/swagger.json
