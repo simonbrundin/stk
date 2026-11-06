@@ -29,3 +29,35 @@ CREATE TABLE IF NOT EXISTS audit_log (
 -- Index for audit log queries
 CREATE INDEX IF NOT EXISTS idx_audit_log_user_id ON audit_log(user_id);
 CREATE INDEX IF NOT EXISTS idx_audit_log_created_at ON audit_log(created_at DESC);
+
+-- Koppling mellan resurser i kommunens bokningssystem och banor i MATCHi.
+-- Varje rad kopplar en kommunresurs till en bana eller sal i MATCHi.
+CREATE TABLE IF NOT EXISTS court_mappings (
+    id                   BIGSERIAL PRIMARY KEY,
+    kommun_resource_id   BIGINT NOT NULL,
+    kommun_resource_name TEXT NOT NULL DEFAULT '',
+    matchi_court_id      BIGINT NOT NULL,
+    matchi_court_name    TEXT NOT NULL,
+    created_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (kommun_resource_id, matchi_court_id)
+);
+
+-- Bokningar som speglas mellan kommunens bokningssystem och MATCHi.
+CREATE TABLE IF NOT EXISTS bookings (
+    id                     BIGSERIAL PRIMARY KEY,
+    kommun_appointment_id  BIGINT NOT NULL,
+    kommun_resource_id     BIGINT NOT NULL,
+    matchi_court_id        BIGINT NOT NULL,
+    matchi_booking_id      TEXT NOT NULL DEFAULT '',
+    matchi_slot_id         TEXT NOT NULL DEFAULT '',
+    start_time             TIMESTAMPTZ NOT NULL,
+    end_time               TIMESTAMPTZ NOT NULL,
+    status                 TEXT NOT NULL DEFAULT 'synced',
+    created_at             TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at             TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (kommun_appointment_id, matchi_court_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_bookings_start_time ON bookings (start_time);
+CREATE INDEX IF NOT EXISTS idx_bookings_matchi_slot_id ON bookings (matchi_slot_id);
