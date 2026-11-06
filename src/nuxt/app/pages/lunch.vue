@@ -28,8 +28,10 @@
       </div>
 
       <div class="footer__wordmark">
+        <span class="wordmark__rule wordmark__rule--top" aria-hidden="true" />
         <p class="wordmark__name">{{ wordmark.name }}</p>
         <p class="wordmark__sub">{{ wordmark.sub }}</p>
+        <span class="wordmark__rule wordmark__rule--bottom" aria-hidden="true" />
       </div>
     </footer>
   </div>
@@ -57,6 +59,8 @@ const wordmark = computed(() => {
   --lunch-black: #000;
   --lunch-grey: #767477;
   --lunch-muted: #a3a3a3;
+  /* Textens vänsterkant ligger 2 px innanför kolumnens kant (sidbäring). */
+  --lunch-text-inset: 2px;
 
   min-height: 100vh;
   padding: 0 clamp(1.25rem, 5vw, 2rem);
@@ -106,7 +110,7 @@ const wordmark = computed(() => {
 /* -------------------------------------------------------------- Innehåll */
 
 .lunch__body {
-  max-width: 42rem;
+  max-width: 740px;
 }
 
 @media (min-width: 900px) {
@@ -116,16 +120,28 @@ const wordmark = computed(() => {
 }
 
 .day {
-  margin-bottom: clamp(2rem, 4.4vw, 3.2rem);
+  margin-bottom: clamp(1rem, 1.85vw, 1.5rem);
 }
 
 .day__title {
-  margin: 0 0 clamp(0.9rem, 2.1vw, 1.5rem);
+  margin: 0 0 clamp(0.55rem, 1vw, 0.8rem);
   font-family: 'Archivo', 'Inter', sans-serif;
   font-size: clamp(1.05rem, 2.6vw, 1.75rem);
   font-variation-settings: 'wdth' 78, 'wght' 800;
   letter-spacing: -0.01em;
   line-height: 1.1;
+}
+
+/* Tunn linje under dagrubriken, som i mockupen. Linjen börjar vid
+   textens vänsterkant (sidbäringen på 7 px) och slutar vid kolumnens kant. */
+.day__title::after {
+  content: '';
+  display: block;
+  height: 2px;
+  margin-top: 8px;
+  margin-left: var(--lunch-text-inset);
+  width: calc(100% - var(--lunch-text-inset));
+  background: var(--lunch-grey);
 }
 
 .day__unpublished {
@@ -142,7 +158,12 @@ const wordmark = computed(() => {
 }
 
 .dish {
-  margin-bottom: clamp(0.85rem, 1.7vw, 1.4rem);
+  margin-bottom: clamp(0.8rem, 1.6vw, 1.3rem);
+}
+
+/* Sista rätten i en dag ska inte trycka dagens avslut neråt. */
+.dish:last-child {
+  margin-bottom: 0;
 }
 
 .dish__name {
@@ -196,6 +217,21 @@ const wordmark = computed(() => {
 
 .footer__wordmark {
   text-align: left;
+}
+
+.wordmark__rule {
+  display: block;
+  width: 180px;
+  height: 2px;
+  background: var(--lunch-black);
+}
+
+.wordmark__rule--top {
+  margin: 0 0 10px auto;
+}
+
+.wordmark__rule--bottom {
+  margin: 16px 0 0;
 }
 
 .wordmark__name {

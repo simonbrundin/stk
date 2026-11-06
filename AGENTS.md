@@ -851,8 +851,14 @@ Referensmått (mockupen):
 | "Lunchmeny"        | 282   | 88   | 360   | 80   |
 | "V45"              | 680   | 88   | 120   | 62   |
 | Dagrubrik          | 183   | 246  | 139   | 27   |
+| Linje under rubrik | 183   | 284  | 740   | 2    |
 | Rättnamn           | 183   | 301  | 98    | 15   |
-| Logotyptext "HOVET"| 574   | 1780 | 398   | 96   |
+| Logotyptext "HOVET"| 574   | 1694 | 398   | 96   |
+
+Strukturen i mockupen är: dagrubrik → tunn linje (2 px, grå `#767477`)
+under rubriken → rätter → 26 px till nästa dagrubrik. Textkolumnen är 740 px
+bred och börjar vid x=183. I sidfoten finns två tunna svarta linjer (180 px):
+en ovanför logotyptexten (högerjusterad) och en under undertxten (vänsterjusterad).
 
 Sidan använder två självhostade fonter från `src/nuxt/public/fonts/`:
 

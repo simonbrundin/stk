@@ -111,11 +111,10 @@ async function load(): Promise<void> {
     appointments.value = response.appointments
     loaded.value = true
   } catch (cause: unknown) {
-    const message =
-      cause && typeof cause === 'object' && 'data' in cause
-        ? ((cause as { data?: { error?: string } }).data?.error ?? '')
-        : ''
-    error.value = message !== '' ? message : 'Kunde inte hämta bokningarna från det kommunala systemet.'
+    error.value =
+      cause instanceof Error
+        ? cause.message
+        : 'Kunde inte hämta bokningarna från det kommunala systemet.'
     appointments.value = []
   } finally {
     loading.value = false
@@ -166,7 +165,12 @@ onMounted(() => {
       </form>
 
       <p v-if="periodError" class="notice notice--error">{{ periodError }}</p>
-      <p v-else-if="error" class="notice notice--error">{{ error }}</p>
+      <p v-else-if="error" class="notice notice--error">
+        {{ error }}
+        <button type="button" class="notice__retry" :disabled="loading" @click="load">
+          Försök igen
+        </button>
+      </p>
     </section>
 
     <section v-if="loaded || appointments.length > 0" class="panel">
@@ -342,6 +346,23 @@ onMounted(() => {
 .notice--error {
   background: #fef2f2;
   color: #b91c1c;
+}
+
+.notice__retry {
+  margin-left: 0.75rem;
+  padding: 0.2rem 0.6rem;
+  border: 1px solid currentColor;
+  border-radius: 0.4rem;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.notice__retry:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .summary {
