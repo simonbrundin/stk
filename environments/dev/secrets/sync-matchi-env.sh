@@ -5,6 +5,10 @@
 # Secreten "go-api-secrets".
 #
 # Env-filen innehåller klartext och får ALDRIG checkas in.
+#
+# Körs automatiskt av Tilt (se ../Tiltfile) men kan även köras manuellt:
+#
+#   bash environments/dev/secrets/sync-matchi-env.sh
 
 set -euo pipefail
 

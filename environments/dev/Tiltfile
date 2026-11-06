@@ -67,6 +67,12 @@ local("bash db/sync-neon-env.sh")
 # MATCHi-hemligheterna dekrypteras från den SOPS-krypterade filen i prod.
 local("bash secrets/sync-matchi-env.sh")
 
+# Base-overlayn ligger utanför kustomize-roten, så Tilt ser inte ändringar
+# i den utan dessa watchers. Utan dem appliceras inte ändringar i base.
+watch_file("../../base/go-api-deployment.yaml")
+watch_file("../../base/matchi-sync-cronjob.yaml")
+watch_file("../../base/kustomization.yaml")
+
 k8s_yaml(kustomize(".",
         flags=["--load-restrictor", "LoadRestrictionsNone", "--enable-helm"]))
 
