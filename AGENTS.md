@@ -569,9 +569,17 @@ db, _ := sql.Open("postgres", os.Getenv("DATABASE_URL"))
 | ---------------------- | ---- | --- | ---------------------------- |
 | `DATABASE_URL`         | -    | ✅  | PostgreSQL connection string |
 | `NUXT_PUBLIC_API_BASE` | ✅   | -   | URL till Go API              |
+| `API_PROXY_TARGET`     | ✅   | -   | Dev-proxy för `/api/` mot Go API:t (default: `http://localhost:8080`) |
 | `PORT`                 | -    | ✅  | API port (default: 8080)     |
 | `ACTORSMARTBOOK_BASE_URL` | - | ✅  | Kommunens bokningssystem (default: `https://sundsvall.actorsmartbook.se`) |
 | `ACTORSMARTBOOK_RESOURCE_FILTER` | - | ✅ | Resurser (hallar/banor) som hämtas (default: `628,629,630,631,632,751,633,634,635,636,637`) |
+| `MATCHI_BASE_URL` | - | ✅ | MATCHi (default: `https://www.matchi.se`) |
+| `MATCHI_USERNAME` | - | ✅ | MATCHi-användare (hemligt, i `go-api-secrets`) |
+| `MATCHI_PASSWORD` | - | ✅ | MATCHi-lösenord (hemligt, i `go-api-secrets`) |
+| `MATCHI_CUSTOMER_ID` | - | ✅ | MATCHi-kundnummer (default: `1660773`) |
+| `SYNC_DAYS` | - | ✅ | Hur många dagar som speglas (default: `21`) |
+| `SYNC_ORGANIZATION_FILTER` | - | ✅ | Regex som filtrerar vilka bokningar som speglas (tomt = alla) |
+| `SYNC_REMOVE_ORPHANS` | - | ✅ | `true` avbokar bokningar som försvunnit från det kommunala systemet (default: `false`) |
 
 ### Kommunens bokningssystem (Actor Smartbook)
 
@@ -592,6 +600,73 @@ tid i `Europe/Stockholm`, vilket gör att DST-övergångar hanteras korrekt.
 Kommunens JSON-parser kräver eskapade snedstreck i datumsträngen
 (`"\/Date(...)\/"`). Klienten serialiserar därför datum med en egen
 `MarshalJSON` - `encoding/json` rå-formatet (`"/Date(...)/"`) ger HTTP 500.
+
+## MATCHi-integration
+
+STK speglar bokningar från Sundsvalls kommuns bokningssystem (Actor
+Smartbook) till MATCHi, där klubbens medlemmar bokar banor.
+
+```
+┌────────────────────┐   ┌─────────────────────┐   ┌──────────────────┐
+│ Actor Smartbook    │──▶│ Go API / sync       │──▶│ MATCHi           │
+│ (kommunens system) │   │ + PostgreSQL/Neon   │   │ (banor + bokning)│
+└────────────────────┘   └─────────────────────┘   └──────────────────┘
+```
+
+### Endpoints
+
+| Endpoint                    | Beskrivning                                          |
+| --------------------------- | ---------------------------------------------------- |
+| `GET /matchi/slots`         | Lediga och bokade slotter per bana och dag           |
+| `POST /matchi/bookings`     | Boka en bana                                         |
+| `POST /matchi/bookings/move`| Flytta en bokning                                    |
+| `POST /matchi/bookings/cancel` | Avboka en bokning                                 |
+| `GET /bookings`             | Lokal spegel av synkade bokningar                    |
+| `GET/POST /court-mappings`  | Koppling kommunresurs ↔ MATCHi-bana                   |
+| `POST /sync`                | Kör en synkronisering manuellt                       |
+
+### Inloggning
+
+MATCHi saknar officiellt admin-API, så klienten loggar in via Keycloak och
+använder MATCHis egna formulär (`/facility/booking/...`). Sessionen återanvänds
+i 30 minuter.
+
+Keycloaks `session_code` kan innehålla tecken som `_` och `.`. Klienten fångar
+därför parametervärdena med en generell teckenklass - en strikt alfanumerisk
+klass kapar värdet och gör att inloggningen intermittent misslyckas.
+
+### Tidsnormalisering
+
+Starttid avrundas **nedåt** till närmaste halvtimme och sluttid **uppåt**, så
+att en bokning aldrig blir kortare än den kommunala bokningen.
+
+### Synkronisering
+
+`cmd/sync` körs av cronjobbet `matchi-sync` (dagligen 03:00, Europe/Stockholm).
+Synkroniseringen är idempotent och **självåterställande**:
+
+| Läge i databasen | Läge i MATCHi          | Åtgärd                |
+| ---------------- | --------------------- | --------------------- |
+| saknas           | -                     | bokas                 |
+| finns            | rätt tid              | lämnas orörd           |
+| finns            | annan tid             | flyttas tillbaka       |
+| finns            | saknas                | bokas om               |
+
+En bokning identifieras med `kommun_appointment_id` + `matchi_court_id`, så
+flera resurser kan peka på samma MATCHi-bana.
+
+> **Orphan-policy:** `SYNC_REMOVE_ORPHANS` är `false` som standard, eftersom en
+> bokning kan döljas i det kommunala systemet. Sätts den till `true` avbokas
+> bokningar som inte syns i Actor Smartbook.
+
+### Secrets
+
+`environments/base/secrets/go-api-secrets.enc.yaml` är krypterat med SOPS +
+age och innehåller MATCHi-inloggningen. Databasens `DATABASE_URL` sätts per
+miljö (dev: `repo-template-db-neon`, prod: `repo-template-db-app`).
+
+> **Flux:** kustomize-controller måste kunna dekryptera SOPS-filer
+> (`spec.decryption.provider: sops`), annars appliceras krypterade värden.
 
 ## Kör lokalt
 
@@ -800,6 +875,31 @@ CNPG skapar automatiskt:
 ```
 postgres://app:<password>@repo-template-db-rw.default.svc.cluster.local:5432/app
 ```
+
+### Dev-miljön: Neon i stället för CNPG
+
+I `environments/dev` finns **ingen Postgres i klustret** - dev pratar mot
+Neon (Lakebase Postgres). CNPG-klustret `repo-template-db` är borttaget ur
+dev-overlayn.
+
+| Resurs                | Vad det är                                             |
+| --------------------- | ------------------------------------------------------ |
+| `environments/dev/db/neon.env` | Anslutningssträngar (gitignoras)                |
+| Secret `repo-template-db-neon` | Genereras av kustomize ur `neon.env`           |
+| `environments/dev/db/sync-neon-env.sh` | Genererar pgAdmin-värden ur `neon.env` |
+
+Nycklarna i `neon.env`:
+
+| Nyckel                  | Endpoint             | Används av                   |
+| ----------------------- | -------------------- | ---------------------------- |
+| `DATABASE_URL`          | poolad (`-pooler`)   | Go API:t (via `DATABASE_URL`) |
+| `DATABASE_URL_UNPOOLED` | direkt               | psql, migrationer            |
+| `uri`                   | direkt               | Atlas Operator               |
+
+Atlas Operator deployar en egen dev-databas-pod i klustret och diffar
+schemat mot Neon - ingen extra databas behövs på Neon.
+
+Se `environments/dev/db/README.md` för hur man byter databas.
 
 ## Mermaid ER-diagram (databas)
 
