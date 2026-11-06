@@ -6,60 +6,52 @@
 
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-
 namespace: repo-template
-
 resources:
-  - ../base
-  - ./db
-  - ./secrets
-  - httproute.yaml
-
+- ../base
+- ./db
+- ./secrets
+- httproute.yaml
 images:
-  - name: nuxt-app
-    newName: ghcr.io/simonbrundin/repo-template-nuxt-app
-    newTag: main
-  - name: go-api
-    newName: ghcr.io/simonbrundin/repo-template-go-api
-    newTag: main
-  - name: rust-api
-    newName: ghcr.io/simonbrundin/repo-template-rust-api
-    newTag: main
-
-# Base-overlayns Namespace ("repo") döps om till "repo-template" av
-# namespace-transformern ovan; etiketterna sätts här.
+- name: nuxt-app
+  newName: ghcr.io/simonbrundin/repo-template-nuxt-app
+  newTag: c89a698c4fba64f2da2c2111b008959a760e841d
+- name: go-api
+  newName: ghcr.io/simonbrundin/repo-template-go-api
+  newTag: c89a698c4fba64f2da2c2111b008959a760e841d
+- name: rust-api
+  newName: ghcr.io/simonbrundin/repo-template-rust-api
+  newTag: c89a698c4fba64f2da2c2111b008959a760e841d
 patches:
-  # API:erna och synkroniseringen använder den externt hanterade
-  # anslutningssträngen för databasen.
-  - target:
-      kind: Deployment
-      name: go-api
-    patch: |-
-      - op: add
-        path: /spec/template/spec/containers/0/env/-
-        value:
-          name: DATABASE_URL
-          valueFrom:
-            secretKeyRef:
-              name: repo-template-db-app
-              key: uri
-  - target:
-      kind: CronJob
-      name: matchi-sync
-    patch: |-
-      - op: add
-        path: /spec/jobTemplate/spec/template/spec/containers/0/env/-
-        value:
-          name: DATABASE_URL
-          valueFrom:
-            secretKeyRef:
-              name: repo-template-db-app
-              key: uri
-  - target:
-      kind: Namespace
-    patch: |-
-      - op: add
-        path: /metadata/labels
-        value:
-          app.kubernetes.io/managed-by: flux
-          environment: prod
+- target:
+    kind: Deployment
+    name: go-api
+  patch: |-
+    - op: add
+      path: /spec/template/spec/containers/0/env/-
+      value:
+        name: DATABASE_URL
+        valueFrom:
+          secretKeyRef:
+            name: repo-template-db-app
+            key: uri
+- target:
+    kind: CronJob
+    name: matchi-sync
+  patch: |-
+    - op: add
+      path: /spec/jobTemplate/spec/template/spec/containers/0/env/-
+      value:
+        name: DATABASE_URL
+        valueFrom:
+          secretKeyRef:
+            name: repo-template-db-app
+            key: uri
+- target:
+    kind: Namespace
+  patch: |-
+    - op: add
+      path: /metadata/labels
+      value:
+        app.kubernetes.io/managed-by: flux
+        environment: prod
