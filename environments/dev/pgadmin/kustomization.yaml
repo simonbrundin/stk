@@ -1,5 +1,9 @@
 # DO NOT EDIT MANUALLY
 # pgAdmin for dev environment
+#
+# pgadmin-values.yaml genereras ur environments/dev/db/neon.env och
+# pgadmin-values.base.yaml av environments/dev/db/sync-neon-env.sh.
+# Den gitignoras - kör synkningen innan `kustomize build`/`tilt up`.
 
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization

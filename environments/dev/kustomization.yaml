@@ -1,5 +1,8 @@
 # DO NOT EDIT MANUALLY
 # Dev environment
+#
+# Databasen är Neon (Lakebase Postgres) - det finns ingen Postgres i klustret.
+# Se ./db/README.md för hur anslutningssträngarna hanteras.
 
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
@@ -14,3 +17,31 @@ resources:
 # CNPG och Atlas operators hanteras av devenv
 
 # Images sätts av Tilt via docker_build + default_registry
+
+patches:
+  # API:erna pratar mot Neon via den poolade endpointen.
+  - target:
+      kind: Deployment
+      name: go-api
+    patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: repo-template-db-neon
+              key: DATABASE_URL
+  # Synkroniseringen mot MATCHi läser samma databas.
+  - target:
+      kind: CronJob
+      name: matchi-sync
+    patch: |-
+      - op: add
+        path: /spec/jobTemplate/spec/template/spec/containers/0/env/-
+        value:
+          name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: repo-template-db-neon
+              key: DATABASE_URL

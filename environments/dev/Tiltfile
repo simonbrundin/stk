@@ -54,6 +54,16 @@ allocate_port("go", 8080)
 allocate_port("rust", 8080)
 allocate_port("pgAdmin", 80)
 
+# =============================================================================
+# Neon-hemligheter
+#
+# Databasen ligger utanför klustret (Neon/Lakebase Postgres). neon.env
+# gitignoras och måste finnas innan bygget - se db/README.md.
+# =============================================================================
+
+local("test -f db/neon.env || (echo 'FEL: environments/dev/db/neon.env saknas - se environments/dev/db/README.md' && exit 1)")
+local("bash db/sync-neon-env.sh")
+
 k8s_yaml(kustomize(".",
         flags=["--load-restrictor", "LoadRestrictionsNone", "--enable-helm"]))
 

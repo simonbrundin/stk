@@ -1,5 +1,6 @@
 # pgAdmin values for dev environment
-# Connects to dev database automatically
+# Servernsdefinitionen för Neon ligger i pgadmin-neon-values.yaml, som
+# genereras ur environments/dev/db/neon.env (gitignoras).
 
 test:
   enabled: false
@@ -14,17 +15,3 @@ env:
 
 persistentVolume:
   enabled: false
-
-serverDefinitions:
-  enabled: true
-  resourceType: ConfigMap
-  servers:
-    "repo-template":
-      Name: "repo-template"
-      Group: "Development"
-      Host: "repo-template-db-rw.repo-template.svc.cluster.local"
-      Port: 5432
-      Username: "app"
-      MaintenanceDB: "app"
-      ConnectionParameters:
-        sslmode: "disable"

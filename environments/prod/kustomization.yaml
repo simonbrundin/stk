@@ -28,6 +28,32 @@ images:
 # Base-overlayns Namespace ("repo") döps om till "repo-template" av
 # namespace-transformern ovan; etiketterna sätts här.
 patches:
+  # API:erna och synkroniseringen använder den externt hanterade
+  # anslutningssträngen för databasen.
+  - target:
+      kind: Deployment
+      name: go-api
+    patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: repo-template-db-app
+              key: uri
+  - target:
+      kind: CronJob
+      name: matchi-sync
+    patch: |-
+      - op: add
+        path: /spec/jobTemplate/spec/template/spec/containers/0/env/-
+        value:
+          name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: repo-template-db-app
+              key: uri
   - target:
       kind: Namespace
     patch: |-
