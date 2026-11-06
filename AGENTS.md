@@ -950,8 +950,13 @@ sökvägen (t.ex. `/stk/fonts/...` på GitHub Pages).
   GitHub Pages-projektsajt)
 
 ```bash
-cd src/nuxt && NUXT_PAGES_BUILD=true NUXT_APP_BASE_URL=/stk/ bun run generate
+cd src/nuxt && NUXT_PAGES_BUILD=true NUXT_APP_BASE_URL=/stk/ \
+  node node_modules/nuxt/bin/nuxt.mjs generate
 ```
+
+> `bun run generate` fungerar inte - bun kopierar bin istället för symlänkar
+> i `node_modules/.bin`, vilket ger `ERR_MODULE_NOT_FOUND`. Kör alltid
+> Nuxt-CLI:t via `node node_modules/nuxt/bin/nuxt.mjs`.
 
 `.github/workflows/pages.yaml` kör detta och publicerar till GitHub Pages.
 Schemat (`0 5 * * *`) bygger om sajten varje morgon så att menyn är färsk.
@@ -959,6 +964,21 @@ Sidans data bäddas in i den prerenderade HTML:en - ingen runtime-fetch.
 
 > **GitHub Pages** måste ha "Source: GitHub Actions" inställt i
 > repoinställningarna, annars deploy-steget misslyckas.
+
+### Hämta menyn från startsidan
+
+Startsidan (`/`) har en knapp **Hämta ny meny** som hämtar veckans meny
+direkt från matochmat.se i webbläsaren. API:t skickar
+`access-control-allow-origin: *`, så det fungerar även på den statiska
+sajten utan backend. Veckor kan bläddras med < och >.
+
+Hämtningslogiken ligger i `src/nuxt/app/utils/lunchSource.ts` och används av
+både byggskriptet (`scripts/fetch-lunch.ts`) och webbläsaren
+(`app/composables/useLiveLunchMenu.ts`), så att båda tolkar API:t lika.
+
+Att **publicera** menyn (bygga om den statiska sajten) görs av
+GitHub Actions. Körningen sker automatiskt varje morgon kl. 06:00
+(svensk tid) och kan även startas manuellt från Actions-fliken.
 
 ## CI/CD och GitOps
 

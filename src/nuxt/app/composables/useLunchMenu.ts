@@ -7,42 +7,9 @@
  */
 
 import rawMenu from '~/data/lunch.json'
+import type { LunchDay, LunchDish, LunchMenu } from '~/utils/lunchSource'
 
-/** En rätt i lunchmenyn. */
-export interface LunchDish {
-  name: string
-  description: string
-  price: string
-  tags: string[]
-}
-
-/** En dag i lunchmenyn. */
-export interface LunchDay {
-  /** Datumet i formatet YYYY-MM-DD. */
-  date: string
-  /** Veckedagen på svenska, t.ex. "måndag". */
-  weekday: string
-  /** Sant om dagen är idag. */
-  isToday: boolean
-  /** Sant om restaurangen har publicerat menyn för dagen. */
-  isPublished: boolean
-  /** Rätterna som serveras. */
-  dishes: LunchDish[]
-}
-
-/** Hela lunchmenyn. */
-export interface LunchMenu {
-  restaurant: {
-    id: number
-    name: string
-    url: string
-    address: string
-  }
-  timeZone: string
-  /** När menyn senast hämtades, ISO 8601. */
-  generatedAt: string
-  days: LunchDay[]
-}
+export type { LunchDay, LunchDish, LunchMenu }
 
 /**
  * Returnerar lunchmenyn.
@@ -59,23 +26,6 @@ export function formatMenuDay(date: string, weekday: string): string {
   const name = weekday.charAt(0).toUpperCase() + weekday.slice(1)
 
   return `${name} ${Number(day)}/${Number(month)}`
-}
-
-/**
- * Räknar ut ISO-veckans nummer för ett datum.
- */
-export function isoWeekNumber(date: string): number {
-  const parsed = new Date(`${date}T00:00:00Z`)
-  const thursday = new Date(parsed.getTime())
-  const weekday = (thursday.getUTCDay() + 6) % 7
-
-  thursday.setUTCDate(thursday.getUTCDate() - weekday + 3)
-
-  const firstThursday = new Date(Date.UTC(thursday.getUTCFullYear(), 0, 4))
-  const firstWeekday = (firstThursday.getUTCDay() + 6) % 7
-  firstThursday.setUTCDate(firstThursday.getUTCDate() - firstWeekday + 3)
-
-  return 1 + Math.round((thursday.getTime() - firstThursday.getTime()) / (7 * 86_400_000))
 }
 
 /**
