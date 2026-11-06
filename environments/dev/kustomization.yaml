@@ -45,3 +45,12 @@ patches:
             secretKeyRef:
               name: repo-template-db-neon
               key: DATABASE_URL
+  # Synkroniseringen är avstängd i dev tills organisationsfiltret är
+  # bestämt - utan filter speglas ALLA bokningar för de mappade resurserna.
+  - target:
+      kind: CronJob
+      name: matchi-sync
+    patch: |-
+      - op: replace
+        path: /spec/suspend
+        value: true
