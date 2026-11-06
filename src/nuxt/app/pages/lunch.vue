@@ -1,29 +1,71 @@
 <template>
   <div class="lunch" :style="{ zoom: scale }">
-    <section v-for="(screen, index) in screens" :key="index" class="screen">
+    <section class="screen">
       <header class="screen__header">
         <h1 class="screen__title">Lunchmeny</h1>
         <p class="screen__week">V{{ week }}</p>
       </header>
 
-      <div class="screen__days">
-        <section v-for="day in screen" :key="day.date" class="day">
-          <h2 class="day__title">{{ formatMenuDay(day.date, day.weekday) }}</h2>
+      <div class="screen__columns">
+        <section class="column">
+          <section v-for="day in layout.left" :key="day.date" class="day">
+            <h2 class="day__title">{{ formatMenuDay(day.date, day.weekday) }}</h2>
 
-          <p v-if="!day.isPublished" class="day__unpublished">
-            Menyn för dagen är inte publicerad ännu.
-          </p>
+            <p v-if="!day.isPublished" class="day__unpublished">
+              Menyn för dagen är inte publicerad ännu.
+            </p>
 
-          <ul v-else class="day__dishes">
-            <li v-for="(dish, dishIndex) in day.dishes" :key="dishIndex" class="dish">
-              <p class="dish__name">
-                <span>{{ dish.name }}</span>
-                <span v-if="dish.price" class="dish__leader" aria-hidden="true" />
+            <ul v-else class="day__dishes">
+              <li v-for="(dish, dishIndex) in day.dishes" :key="dishIndex" class="dish">
+                <p class="dish__name">
+                  <span>{{ dish.name }}</span>
+                  <span v-if="dish.price" class="dish__leader" aria-hidden="true" />
+                </p>
+                <p v-if="dish.description" class="dish__description">{{ dish.description }}</p>
+                <p v-if="dish.tags.length" class="dish__tags">{{ dish.tags.join(', ') }}</p>
+              </li>
+            </ul>
+          </section>
+        </section>
+
+        <section class="column">
+          <section v-for="day in layout.right" :key="day.date" class="day">
+            <h2 class="day__title">{{ formatMenuDay(day.date, day.weekday) }}</h2>
+
+            <p v-if="!day.isPublished" class="day__unpublished">
+              Menyn för dagen är inte publicerad ännu.
+            </p>
+
+            <ul v-else class="day__dishes">
+              <li v-for="(dish, dishIndex) in day.dishes" :key="dishIndex" class="dish">
+                <p class="dish__name">
+                  <span>{{ dish.name }}</span>
+                  <span v-if="dish.price" class="dish__leader" aria-hidden="true" />
+                </p>
+                <p v-if="dish.description" class="dish__description">{{ dish.description }}</p>
+                <p v-if="dish.tags.length" class="dish__tags">{{ dish.tags.join(', ') }}</p>
+              </li>
+            </ul>
+          </section>
+
+          <section
+            v-if="layout.soup || layout.vegetarian"
+            class="weekly"
+          >
+            <div v-if="layout.soup" class="weekly__item">
+              <h2 class="weekly__title">{{ layout.soup.name }}</h2>
+              <p v-if="layout.soup.description" class="weekly__description">
+                {{ layout.soup.description }}
               </p>
-              <p v-if="dish.description" class="dish__description">{{ dish.description }}</p>
-              <p v-if="dish.tags.length" class="dish__tags">{{ dish.tags.join(', ') }}</p>
-            </li>
-          </ul>
+            </div>
+
+            <div v-if="layout.vegetarian" class="weekly__item">
+              <h2 class="weekly__title">{{ layout.vegetarian.name }}</h2>
+              <p v-if="layout.vegetarian.description" class="weekly__description">
+                {{ layout.vegetarian.description }}
+              </p>
+            </div>
+          </section>
         </section>
       </div>
 
@@ -48,8 +90,8 @@ const week = computed(() => isoWeekNumber(menu.days[0]?.date ?? ''))
 /** Logotypen ligger i public/ och måste följa baseURL (t.ex. /stk/). */
 const logoSrc = computed(() => `${runtimeConfig.app.baseURL}images/hovet-logo.png`)
 
-/** Menyn delas upp på skärmar som i mockupen. */
-const screens = computed(() => groupDaysIntoScreens(menu.days))
+/** Veckans dagar i två kolumner, med soppa och vegetarisk rätt längst ner. */
+const layout = computed(() => buildWeekLayout(menu.days))
 
 /**
  * Skärmen är 1080x1920 px. På smalare skärmar skalas hela skärmen ner,
@@ -92,7 +134,6 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 24px;
   min-height: 100vh;
   background: #e6e6e6;
   color: var(--lunch-black);
@@ -106,9 +147,9 @@ onBeforeUnmount(() => {
 .screen {
   position: relative;
   width: 1080px;
-  min-height: 1920px;
-  background: #fff;
+  height: 1920px;
   overflow: hidden;
+  background: #fff;
 }
 
 .screen__header {
@@ -139,23 +180,34 @@ onBeforeUnmount(() => {
   line-height: 1;
 }
 
-/* ------------------------------------------------------------- Innehåll */
+/* ------------------------------------------------------------- Kolumner */
 
-.screen__days {
+/* Två kolumner: måndag–torsdag till vänster, fredag–söndag till höger. */
+.screen__columns {
   position: absolute;
   top: 244px;
-  left: 181px;
-  width: 740px;
+  left: 100px;
+  right: 100px;
+  display: flex;
+  align-items: flex-start;
+  gap: 60px;
 }
 
+.column {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+/* ------------------------------------------------------------- Innehåll */
+
 .day {
-  margin-bottom: 19px;
+  margin-bottom: 26px;
 }
 
 .day__title {
   margin: 0 0 11px;
   font-family: 'Archivo', 'Inter', sans-serif;
-  font-size: 28px;
+  font-size: 26px;
   font-variation-settings: 'wdth' 78, 'wght' 800;
   letter-spacing: -0.01em;
   line-height: 1.1;
@@ -187,7 +239,7 @@ onBeforeUnmount(() => {
 }
 
 .dish {
-  margin-bottom: 17px;
+  margin-bottom: 16px;
 }
 
 /* Sista rätten i en dag ska inte trycka dagens avslut neråt. */
@@ -217,7 +269,7 @@ onBeforeUnmount(() => {
 .dish__description {
   margin: 2px 0 0;
   color: var(--lunch-grey);
-  font-size: 18px;
+  font-size: 17px;
   font-weight: 400;
   line-height: 1.35;
 }
@@ -229,6 +281,36 @@ onBeforeUnmount(() => {
   font-size: 13px;
   letter-spacing: 0.01em;
   line-height: 1.2;
+}
+
+/* ----------------------------------------------------- Veckans highlight */
+
+/* Soppan och den vegetariska rätten gäller hela veckan och ligger därför
+   under söndag i högra kolumnen. */
+.weekly {
+  margin-top: 44px;
+  padding-top: 20px;
+  border-top: 2px solid var(--lunch-grey);
+}
+
+.weekly__item + .weekly__item {
+  margin-top: 16px;
+}
+
+.weekly__title {
+  margin: 0;
+  font-family: 'Archivo', 'Inter', sans-serif;
+  font-size: 26px;
+  font-variation-settings: 'wdth' 78, 'wght' 800;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+}
+
+.weekly__description {
+  margin: 4px 0 0;
+  color: var(--lunch-grey);
+  font-size: 17px;
+  line-height: 1.35;
 }
 
 /* --------------------------------------------------------------- Logotyp */

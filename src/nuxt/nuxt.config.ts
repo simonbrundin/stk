@@ -94,7 +94,10 @@ export default defineNuxtConfig({
         prerender: {
           crawlLinks: false,
           routes: ['/', '/lunch'],
-          failOnError: false,
+          // Ett fel i en sida ska stoppa byggningen. Annars deployas en
+          // trasig sajt utan att det syns i loggen (t.ex. en route som
+          // renderar 500 och därför inte prerenderas).
+          failOnError: true,
         },
       }
     : {},

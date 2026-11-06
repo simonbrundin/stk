@@ -876,18 +876,24 @@ bredder mot mockupen:
 cd src/nuxt && ./scripts/compare-mockup.sh
 ```
 
-#### Skärmar i formatet 1080x1920
+#### Skärm i formatet 1080x1920
 
-Sidan är en kanvas av **exakt 1080x1920 px per skärm**. Veckans dagar
-delas upp på sådana skärmar (`groupDaysIntoScreens` i `useLunchMenu.ts`):
-max tre dagar per skärm - fler ryms inte på höjden. Dagarna sprids jämnt
-över skärmarna, så en vecka med sju dagar blir tre skärmar med 3, 2 och 2
-dagar.
+Sidan är en kanvas av **exakt 1080x1920 px**. Hela veckan får plats på
+en enda skärm, i två kolumner (`buildWeekLayout` i `useLunchMenu.ts`):
+
+- vänster kolumn: måndag–torsdag
+- höger kolumn: fredag–söndag
+- längst ner i högra kolumnen, under söndag (x=570, y~1117): veckans soppa
+  och veckans vegetariska rätt
+
+Lunchbuffén visas inte - den filtreras bort redan i
+`scripts/fetch-lunch.ts`. Soppan och den vegetariska rätten plockas bort
+ur dagarna av `buildWeekLayout` och visas i stället en gång under söndag.
 
 Varje skärm har samma uppbyggnad som mockupen:
 
 - rubrik "Lunchmeny" + veckonummer ("V45") högst upp
-- dagar i en 740 px bred kolumn (vänsterkant x=183)
+- dagar i två kolumner (vänsterkant x=100 respektive x=570)
 - Hovets logotyp nederst till höger
 
 På smalare skärmar skalas hela kanvasen ner med `zoom`
@@ -910,7 +916,9 @@ Referensmått (mockupen):
 | ------------------ | ----- | ---- | ----- | ---- |
 | "Lunchmeny"        | 282   | 88   | 360   | 80   |
 | "V45"              | 680   | 88   | 120   | 62   |
-| Dagrubrik          | 183   | 246  | 139   | 27   |
+| Dagrubrik (vänster)| 101   | 246  | 139   | 27   |
+| Dagrubrik (höger)  | 571   | 248  | 139   | 27   |
+| Veckans soppa      | 570   | 1117 | -     | -    |
 | Linje under rubrik | 183   | 284  | 740   | 2    |
 | Rättnamn           | 183   | 301  | 98    | 15   |
 | Logotyptext "HOVET"| 574   | 1694 | 398   | 96   |

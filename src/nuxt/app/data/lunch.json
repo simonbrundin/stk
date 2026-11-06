@@ -6,7 +6,7 @@
     "address": "Lasarettsvägen 22, Sundsvall"
   },
   "timeZone": "Europe/Stockholm",
-  "generatedAt": "2026-11-06T12:57:32.644Z",
+  "generatedAt": "2026-11-06T13:24:30.061Z",
   "days": [
     {
       "date": "2026-11-02",
@@ -14,12 +14,6 @@
       "isToday": false,
       "isPublished": true,
       "dishes": [
-        {
-          "name": "Lunchbuffé",
-          "description": "inkl. sallad, måltidsdryck, bröd, smör, kaffe och småkakor",
-          "price": "135",
-          "tags": []
-        },
         {
           "name": "Hovets Lasagne",
           "description": "med köttfärs, tomat, lök, grädde och vitlök",
@@ -61,12 +55,6 @@
       "isPublished": true,
       "dishes": [
         {
-          "name": "Lunchbuffé",
-          "description": "inkl. sallad, måltidsdryck, bröd, smör, kaffe och småkakor",
-          "price": "135",
-          "tags": []
-        },
-        {
           "name": "Hovets Lasagne",
           "description": "med köttfärs, tomat, lök, grädde och vitlök",
           "price": "",
@@ -106,12 +94,6 @@
       "isToday": false,
       "isPublished": true,
       "dishes": [
-        {
-          "name": "Lunchbuffé",
-          "description": "inkl. sallad, måltidsdryck, bröd, smör, kaffe och småkakor",
-          "price": "135",
-          "tags": []
-        },
         {
           "name": "Hovets Lasagne",
           "description": "med köttfärs, tomat, lök, grädde och vitlök",
@@ -153,12 +135,6 @@
       "isPublished": true,
       "dishes": [
         {
-          "name": "Lunchbuffé",
-          "description": "inkl. sallad, måltidsdryck, bröd, smör, kaffe och småkakor",
-          "price": "135",
-          "tags": []
-        },
-        {
           "name": "Hovets Lasagne",
           "description": "med köttfärs, tomat, lök, grädde och vitlök",
           "price": "",
@@ -198,12 +174,6 @@
       "isToday": true,
       "isPublished": true,
       "dishes": [
-        {
-          "name": "Lunchbuffé",
-          "description": "inkl. sallad, måltidsdryck, bröd, smör, kaffe och småkakor",
-          "price": "135",
-          "tags": []
-        },
         {
           "name": "Hovets Lasagne",
           "description": "med köttfärs, tomat, lök, grädde och vitlök",
@@ -245,12 +215,6 @@
       "isPublished": true,
       "dishes": [
         {
-          "name": "Lunchbuffé",
-          "description": "inkl. sallad, måltidsdryck, bröd, smör, kaffe och småkakor",
-          "price": "135",
-          "tags": []
-        },
-        {
           "name": "Spaghetti Bolognese",
           "description": "köttfärssås med köttfärs, tomat, rött vin, lök och grädde, serveras med riven ost",
           "price": "",
@@ -276,12 +240,6 @@
       "isToday": false,
       "isPublished": true,
       "dishes": [
-        {
-          "name": "Lunchbuffé",
-          "description": "inkl. sallad, måltidsdryck, bröd, smör, kaffe och småkakor",
-          "price": "135",
-          "tags": []
-        },
         {
           "name": "Hovets Korvstroganoff",
           "description": "med falukorv, lök, tomat, chili och grädde serveras med basmatiris",

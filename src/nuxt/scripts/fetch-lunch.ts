@@ -31,6 +31,9 @@ const API_URL = 'https://www.matochmat.se/rest/v3/menus'
 const RESTAURANT_URL =
   'https://www.matochmat.se/restauranger/sundsvall/lunch/hovet-restaurang-och-cafe/'
 
+/** Lunchbuffén hör inte till menyn och filtreras bort. */
+const BUFFET = /lunchbuff/i
+
 /** Nycklarna matochmat.se använder för veckans dagar. */
 const WEEKDAY_KEYS = [
   'mandag',
@@ -180,12 +183,18 @@ async function fetchWeek(week: number, year: number): Promise<WeekMenu> {
 
   const days = new Map<string, Dish[]>()
   for (const [key, dishes] of Object.entries(content)) {
-    days.set(key, dishes.map((dish) => ({
-      name: dish.name ?? '',
-      description: dish.description ?? '',
-      price: dish.price ?? '',
-      tags: dish.tags ?? [],
-    })))
+    days.set(
+      key,
+      dishes
+        // Lunchbuffén visas inte i menyn och tas bort redan vid hämtningen.
+        .filter((dish) => !BUFFET.test(dish.name ?? ''))
+        .map((dish) => ({
+          name: dish.name ?? '',
+          description: dish.description ?? '',
+          price: dish.price ?? '',
+          tags: dish.tags ?? [],
+        })),
+    )
   }
 
   return { days, isDefaultMenu: entry.isDefaultMenu }
