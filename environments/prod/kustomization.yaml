@@ -15,13 +15,13 @@ resources:
 images:
 - name: nuxt-app
   newName: ghcr.io/simonbrundin/repo-template-nuxt-app
-  newTag: c89a698c4fba64f2da2c2111b008959a760e841d
+  newTag: dfad4adde84660c6a28b776b9e466282864729a0
 - name: go-api
   newName: ghcr.io/simonbrundin/repo-template-go-api
-  newTag: c89a698c4fba64f2da2c2111b008959a760e841d
+  newTag: dfad4adde84660c6a28b776b9e466282864729a0
 - name: rust-api
   newName: ghcr.io/simonbrundin/repo-template-rust-api
-  newTag: c89a698c4fba64f2da2c2111b008959a760e841d
+  newTag: dfad4adde84660c6a28b776b9e466282864729a0
 patches:
 - target:
     kind: Deployment
