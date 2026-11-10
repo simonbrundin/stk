@@ -938,7 +938,7 @@ På smalare skärmar skalas hela kanvasen ner med `zoom`
 
 `src/nuxt/public/images/hovet-logo.png` är Hovets logotyp, exporterad ur
 mockupens sidfot. Bilden placeras i samma nedre högra hörn som i mockupen
-(högerkant x=972, botten y=1868) men i 70 % skala (280x131 px), så att
+(högerkant x=972, botten y=1868) men i 60 % skala (240x113 px), så att
 ordmärket inte dominerar sidfoten. `mix-blend-mode: multiply` tar bort den
 vita bakgrunden. Sökvägen byggs av `runtimeConfig.app.baseURL` så att den
 fungerar under GitHub Pages `baseURL`.
@@ -951,9 +951,9 @@ Referensmått (mockupen):
 | ------------------ | ----- | ---- | ----- | ---- |
 | "Lunchmeny"        | 282   | 88   | 360   | 80   |
 | "V45"              | 680   | 88   | 120   | 62   |
-| Dagrubrik (vänster)| 101   | 246  | 139   | 27   |
-| Dagrubrik (höger)  | 571   | 248  | 139   | 27   |
-| Veckans soppa      | 570   | 1117 | -     | -    |
+| Dagrubrik (vänster)| 102   | 242  | 136   | 30   |
+| Dagrubrik (höger)  | 572   | 243  | 136   | 30   |
+| Veckans soppa      | 570   | 1248 | -     | -    |
 | Linje under rubrik | 183   | 284  | 740   | 2    |
 | Rättnamn           | 183   | 301  | 98    | 15   |
 | Logotyptext "HOVET"| 574   | 1694 | 398   | 96   |

@@ -201,13 +201,13 @@ onBeforeUnmount(() => {
 /* ------------------------------------------------------------- Innehåll */
 
 .day {
-  margin-bottom: 26px;
+  margin-bottom: 72px;
 }
 
 .day__title {
   margin: 0 0 11px;
   font-family: 'Archivo', 'Inter', sans-serif;
-  font-size: 26px;
+  font-size: 36px;
   font-variation-settings: 'wdth' 78, 'wght' 800;
   letter-spacing: -0.01em;
   line-height: 1.1;
@@ -248,12 +248,13 @@ onBeforeUnmount(() => {
 }
 
 .dish__name {
+  /* color: var(--lunch-grey); */
   display: flex;
   align-items: baseline;
   gap: 0.4em;
   margin: 0;
   font-family: 'Archivo', 'Inter', sans-serif;
-  font-size: 19px;
+  font-size: 21px;
   font-variation-settings: 'wdth' 100, 'wght' 700;
   line-height: 1.2;
 }
@@ -269,7 +270,7 @@ onBeforeUnmount(() => {
 .dish__description {
   margin: 2px 0 0;
   color: var(--lunch-grey);
-  font-size: 17px;
+  font-size: 19px;
   font-weight: 400;
   line-height: 1.35;
 }
@@ -300,7 +301,7 @@ onBeforeUnmount(() => {
 .weekly__title {
   margin: 0;
   font-family: 'Archivo', 'Inter', sans-serif;
-  font-size: 26px;
+  font-size: 28px;
   font-variation-settings: 'wdth' 78, 'wght' 800;
   letter-spacing: -0.01em;
   line-height: 1.1;
@@ -309,7 +310,7 @@ onBeforeUnmount(() => {
 .weekly__description {
   margin: 4px 0 0;
   color: var(--lunch-grey);
-  font-size: 17px;
+  font-size: 19px;
   line-height: 1.35;
 }
 

@@ -36,15 +36,15 @@ Lunchmeny          x=282  y=88   w=360  h=80   färg #767477
 V45                x=680  y=88   w=120  h=62   färg #767477
 
 -- Två kolumner (ny layout) --
-Måndag 2/11        x=101  y=246  vänster kolumn
-Tisdag 3/11        x=100  y=522  vänster kolumn
-Onsdag 4/11        x=101  y=818  vänster kolumn
-Torsdag 5/11       x=100  y=1115 vänster kolumn
-Fredag 6/11        x=571  y=248  höger kolumn
-Lördag 7/11        x=571  y=591  höger kolumn
-Söndag 8/11        x=571  y=823  höger kolumn
-Veckans soppa      x=570  y=1117 under söndag i höger kolumn
-Veckans veget.     x=570  y=1211 under söndag i höger kolumn
+Måndag 2/11        x=102  y=242  vänster kolumn
+Tisdag 3/11        x=100  y=571  vänster kolumn
+Onsdag 4/11        x=101  y=919  vänster kolumn
+Torsdag 5/11       x=100  y=1266 vänster kolumn
+Fredag 6/11        x=572  y=243  höger kolumn
+Lördag 7/11        x=572  y=648  höger kolumn
+Söndag 8/11        x=571  y=927  höger kolumn
+Veckans soppa      x=570  y=1248 under söndag i höger kolumn
+Veckans veget.     x=570  y=1350 under söndag i höger kolumn
 
-HOVET/RESTAURANG   x=574  y=1825 w=376  h=65   färg #000
+HOVET/RESTAURANG   x=732  y=1842 w=240  h=113  färg #000
 EOF
